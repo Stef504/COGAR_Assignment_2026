@@ -24,3 +24,6 @@ Deliverables: Multi-modal tactile dataset, sensor characterization report
 
 ## Run
     python main.py
+
+# Baxter:
+Fork and use -> https://github.com/giangalv/baxter_rosbridge_adapter, follow the README. 
