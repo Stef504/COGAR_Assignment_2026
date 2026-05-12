@@ -13,7 +13,7 @@ DEPTH_THRESHOLD = 0.02   # Noise floor for contact detection
 H_INITIAL = 10.0         # Physical height of your test object
 
 if __name__ == "__main__":
-    dev_serial_id = "S2508080077"
+    dev_serial_id = "S2508080042"
     sensor = Sensor(dev_serial_id)
     
     # Data Storage for Matplotlib
@@ -32,9 +32,10 @@ if __name__ == "__main__":
         shear_map = sensor.getShear() # (H, W, 2)
         curr_time = time.time() - start_time
 
+        depth_smooth = cv2.GaussianBlur(depth_map, (5, 5), 0) # Reduce noise for better contact detection
         # --- 3. CONTACT MASKING (The Foundation) ---
         # Identifying exactly where the object touches the gel
-        contact_mask = (depth_map > DEPTH_THRESHOLD).astype(np.uint8)
+        contact_mask = (depth_smooth > DEPTH_THRESHOLD).astype(np.uint8)
         contact_pixel_count = np.sum(contact_mask)
         contact_area_mm2 = contact_pixel_count * PIXEL_AREA
 
@@ -47,7 +48,11 @@ if __name__ == "__main__":
 
         # --- 5. GRAIN / TEXTURE ANALYSIS (Sobel Derivatives) ---
         # Apply mask to raw image before edge detection
-        gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY)
+        if len(img_raw.shape) == 3:
+            gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = img_raw
+
         masked_gray = cv2.bitwise_and(gray, gray, mask=contact_mask)
         
         # Derivatives to find grain orientation
