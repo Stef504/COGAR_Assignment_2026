@@ -37,10 +37,10 @@ if __name__ == "__main__":
         # Identifying exactly where the object touches the gel
         contact_mask = (depth_smooth > DEPTH_THRESHOLD).astype(np.uint8)
         contact_pixel_count = np.sum(contact_mask)
-        contact_area_mm2 = contact_pixel_count * PIXEL_AREA
+        contact_area_mm2 = contact_pixel_count * PIXEL_AREA # Convert pixel count to mm^2 using calibration
 
         # --- 4. MASKED FORCE VECTOR SUMMATION ---
-        # We only sum shear vectors inside the contact area to avoid noise
+        # We only sum shear vectors inside the contact area 
         masked_shear = shear_map * contact_mask[:, :, np.newaxis]
         total_shear_x = np.sum(masked_shear[:, :, 0])
         total_shear_y = np.sum(masked_shear[:, :, 1])
@@ -75,8 +75,9 @@ if __name__ == "__main__":
         area_hist.append(contact_area_mm2)
 
         # --- 7. VISUALIZATION ---
-        cv2.imshow('Depth (Heatmap)', cv2.applyColorMap((depth_map*0.25*255).astype('uint8'), cv2.COLORMAP_HOT))
-        cv2.imshow('Masked Texture (Grains)', masked_gray)
+        cv2.imshow('1. Raw Image', gray)
+        cv2.imshow('2. Gradient Map (Grains)', grad_vis)
+        cv2.imshow('3. Depth Heatmap', cv2.applyColorMap((depth_smooth*100).astype('uint8'), cv2.COLORMAP_HOT))
         
         k = cv2.waitKey(3)
         if k & 0xFF == ord('q'):
@@ -102,16 +103,35 @@ if __name__ == "__main__":
     print(f"Final Strain: {final_strain:.4f}")
 
     # Plotting
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    fig, (ax1, ax2,ax3) = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
     
-    ax1.plot(time_arr, depth_arr, label="Depth (Normal)", color='blue')
+    #Identation Profile (from Depth Map)
+    ax1.plot(time_arr, depth_arr, color='blue', linewidth=2)
+    ax1.set_ylabel("Depth (mm)", color = 'blue', fontsize=12)
+    ax1.set_title("Depth (Object identation) Profile over Time", fontsize =14)
+    ax1.set_xlabel("Time (s)", fontsize=12)
+    ax1.grid(True, linestyle='--', alpha=0.5)
     ax1.plot(time_arr, np.array(shear_hist)/10, label="Shear (Scaled)", color='red')
-    ax1.set_title("Force Profile over Time")
+    ax1.set_title("Force Profile over Time", fontsize=14)
     ax1.legend()
 
-    ax2.plot(time_arr[1:], velocity, color='green')
-    ax2.set_title("Indentation Velocity (Derivative for Dip Detection)")
-    ax2.set_xlabel("Time (s)")
+    #Shear Force Profile
+    ax2.plot(time_arr, np.array(shear_hist), color='red', linewidth=2)
+    ax2.set_title("Shear Force Profile over Time", fontsize=14)
+    ax2.set_xlabel("Time (s)", fontsize=12)
+    ax2.set_ylabel("Shear Force (N)", color='red', fontsize=12)
+    ax2.grid(True, linestyle='--', alpha=0.5)
     
+
+    # Annotate the Strain on the plot for your report
+    plt.figtext(0.15, 0.02, f"Calculated Final Strain: {final_strain:.4f}",fontsize=12, fontweight='bold', bbox=dict(facecolor='white', alpha=0.5))
+
+    #Velocity Profile (Dip Detection)
+    ax3.plot(time_arr[1:], velocity, color='green')
+    ax3.set_title("Dip Detection - For velocity changes in shear map", fontsize=14)
+    ax3.set_xlabel("Time (s)", fontsize=12)
+    ax3.set_ylabel("Velocity (mm/s)", color='green', fontsize=12)
+    ax3.grid(True, linestyle='--', alpha=0.5)
+
     plt.tight_layout()
     plt.show()
