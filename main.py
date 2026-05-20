@@ -166,8 +166,8 @@ if __name__ == "__main__":
     ax3.grid(True, linestyle='--', alpha=0.5)
 
     #Topology Profile (Contact Area)
-    ax4.bar(time_hist, edge_x_hist, width=0.1, label='Vertical Grains (X)', color='purple', alpha=0.7)
-    ax4.bar(time_hist, edge_y_hist, width=0.1, bottom=edge_x_hist, label='Horizontal Grains (Y)', color='orange', alpha=0.7)
+    ax4.bar(time_hist, x_edge_hist, width=0.1, label='Vertical Grains (X)', color='purple', alpha=0.7)
+    ax4.bar(time_hist, y_edge_hist, width=0.1, bottom=x_edge_hist, label='Horizontal Grains (Y)', color='orange', alpha=0.7)
 
     ax4.set_title("Grain Analysis (Directional Edge Counts)", fontsize=14) 
     ax4.set_xlabel("Time (s)", fontsize=12)
