@@ -7,9 +7,9 @@ from dmrobotics import Sensor, put_arrows_on_image
 # --- 1. CONFIGURATION & CALIBRATION ---
 # These constants are derived from your sensor datasheet or manual calibration
 PIXEL_TO_MM = 20       # pixels per mm
-PIXEL_AREA = PIXEL_TO_MM**2 
+PIXEL_AREA = 0.0025   # mm^2 per pixel (calibrated from a known reference object) [cite: 261] 
 GEL_THICKNESS = 20.1      # L in mm
-DEPTH_THRESHOLD = 0.02   # Noise floor for contact detection
+DEPTH_THRESHOLD = 0.015   # Noise floor for contact detection
 H_INITIAL = 10.0         # Physical height of your test object
 
 if __name__ == "__main__":
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     print("Taring sensor baseline. Ensure surface is completely untouched...")
     sensor.reset() 
     time.sleep(1.0) # Give the internal CUDA solver a moment to finalize the clear [cite: 268]
-    
+
     print("Experiment Active. Press 'q' to stop and generate graphs.")
 
     while True:
@@ -39,6 +39,7 @@ if __name__ == "__main__":
         depth_map = sensor.getDepth()
         shear_map = sensor.getShear() # (H, W, 2)
         curr_time = time.time() - start_time
+        black_img = np.zeros((240, 320, 3), dtype=np.uint8)
 
         depth_smooth = cv2.GaussianBlur(depth_map, (5, 5), 0) # Reduce noise for better contact detection
         # --- 3. CONTACT MASKING (The Foundation) ---
@@ -49,11 +50,16 @@ if __name__ == "__main__":
 
         # --- 4. MASKED FORCE VECTOR SUMMATION ---
         # We only sum shear vectors inside the contact area 
-        masked_shear = shear_map * contact_mask[:, :, np.newaxis]
-        total_shear_x = np.sum(masked_shear[:, :, 0])
-        total_shear_y = np.sum(masked_shear[:, :, 1])
-        total_shear_force = np.sqrt(total_shear_x**2 + total_shear_y**2)
 
+        # --- 4. CORRECTED FORCE VECTOR AVERAGING ---
+       # Isolates the vectors within the mask. Summing across thousands of active pixels 
+        # yields the integrated total lateral deformation metric across the footprint.
+        masked_shear = shear_map * contact_mask[:, :, np.newaxis] # [cite: 981]
+        total_shear_x = np.sum(masked_shear[:, :, 0]) # [cite: 981]
+        total_shear_y = np.sum(masked_shear[:, :, 1]) # [cite: 981]
+        total_shear_force = np.sqrt(total_shear_x**2 + total_shear_y**2) #
+
+        vector_vis = put_arrows_on_image(black_img, masked_shear * 20) # Scale up by 20 for visibility 
         # --- 5. GRAIN / TEXTURE ANALYSIS (Sobel Derivatives) ---
         # Apply mask to raw image before edge detection
         if len(img_raw.shape) == 3:
@@ -61,29 +67,29 @@ if __name__ == "__main__":
         else:
             gray = img_raw
 
-        masked_gray = cv2.bitwise_and(gray, gray, mask=contact_mask)
         
         # Derivatives to find grain orientation
 
         # 1. Math: Derivatives to find grain orientation
-        grad_x = cv2.Sobel(masked_gray, cv2.CV_64F, 1, 0, ksize=3)
-        grad_y = cv2.Sobel(masked_gray, cv2.CV_64F, 0, 1, ksize=3)
+        grad_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+        grad_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
 
         # 2. Connection: Combine X and Y into a Magnitude Map for visualization
         # This is the step that was missing
         grad_mag = cv2.magnitude(grad_x, grad_y)
 
         # Only consider pixels where the gradient is 'strong' enough to be a grain, TRAIL and ERROR
-        MAG_THRESHOLD = 50.0 
+        MAG_THRESHOLD = 45
         # This creates a binary map: 255 where grain is strong, 0 elsewhere
         _, grain_mask = cv2.threshold(grad_mag, MAG_THRESHOLD, 255, cv2.THRESH_BINARY)
         grain_mask = grain_mask.astype(np.uint8)
 
+        masked_gray = cv2.bitwise_and(gray, gray, mask=contact_mask)
         # 4. Count Directional Edges
         # We only count gradients where the grain_mask is active
         # Use np.abs because an edge can be a transition from light-to-dark or dark-to-light
-        edge_count_x = np.sum(np.abs(grad_x) > MAG_THRESHOLD)
-        edge_count_y = np.sum(np.abs(grad_y) > MAG_THRESHOLD)
+        edge_count_x = np.sum((np.abs(grad_x) > MAG_THRESHOLD) & (masked_gray > 0))
+        edge_count_y = np.sum((np.abs(grad_y) > MAG_THRESHOLD) & (masked_gray > 0))
 
         # Record edge counts for later analysis
         x_edge_hist.append(edge_count_x)
@@ -109,7 +115,9 @@ if __name__ == "__main__":
         # --- 7. VISUALIZATION ---
         cv2.imshow('1. Raw Image', gray)
         cv2.imshow('2. Gradient Map (Grains)', grad_vis)
-        cv2.imshow('3. Depth Heatmap', cv2.applyColorMap((depth_smooth*100).astype('uint8'), cv2.COLORMAP_HOT))
+        cv2.imshow('3. Depth Heatmap', cv2.applyColorMap((depth_smooth*100).astype('uint8'), cv2.COLORMAP_HOT))        
+        # Display the live directional field
+        cv2.imshow('4. Tangential Shear Vectors', vector_vis)
         
         k = cv2.waitKey(3)
         if k & 0xFF == ord('q'):
@@ -137,22 +145,21 @@ if __name__ == "__main__":
     # Plotting
     fig, (ax1, ax2,ax3,ax4) = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
     
-    #Identation Profile (from Depth Map)
-    ax1.plot(time_arr, depth_arr, color='blue', linewidth=2)
-    ax1.set_ylabel("Depth (mm)", color = 'blue', fontsize=12)
-    ax1.set_title("Depth (Object identation) Profile over Time", fontsize =14)
-    ax1.set_xlabel("Time (s)", fontsize=12)
+    # Subplot 1: Indentation Profile (Left Axis) vs Scaled Shear (Right Twin Axis)
+    # Using a twin axis prevents the massive integrated shear values from flattening your depth curve!
+    ax1.plot(time_arr, depth_arr, color='blue', linewidth=2, label="Depth (mm)")
+    ax1.set_ylabel("Depth (mm)", color='blue', fontsize=12)
+    ax1.set_title("Tactile Profile Relationships over Time", fontsize=14)
     ax1.grid(True, linestyle='--', alpha=0.5)
-    ax1.plot(time_arr, np.array(shear_hist)/10, label="Shear (Scaled)", color='red')
-    ax1.set_title("Force Profile over Time", fontsize=14)
-    ax1.legend()
-
-    #Shear Force Profile
-    ax2.plot(time_arr, np.array(shear_hist), color='red', linewidth=2)
-    ax2.set_title("Shear Force Profile over Time", fontsize=14)
-    ax2.set_xlabel("Time (s)", fontsize=12)
-    ax2.set_ylabel("Total Shear Displacement (mm)", color='red', fontsize=12)
-    ax2.grid(True, linestyle='--', alpha=0.5)
+    
+    ax1_right = ax1.twinx()
+    ax1_right.plot(time_arr, np.array(shear_hist), color='red', linewidth=1.5, linestyle='--', label="Integrated Shear")
+    ax1_right.set_ylabel("Integrated Shear Displacement (sum mm)", color='red', fontsize=12)
+    
+    # Combine legends smoothly
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax1_right.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
     
 
     # Annotate the Strain on the plot for clarity, since it's a key result of the experiment
@@ -166,8 +173,8 @@ if __name__ == "__main__":
     ax3.grid(True, linestyle='--', alpha=0.5)
 
     #Topology Profile (Contact Area)
-    ax4.bar(time_hist, edge_x_hist, width=0.1, label='Vertical Grains (X)', color='purple', alpha=0.7)
-    ax4.bar(time_hist, edge_y_hist, width=0.1, bottom=edge_x_hist, label='Horizontal Grains (Y)', color='orange', alpha=0.7)
+    ax4.bar(time_hist, x_edge_hist, width=0.1, label='Vertical Grains (X)', color='purple', alpha=0.7)
+    ax4.bar(time_hist, y_edge_hist, width=0.1, bottom=x_edge_hist, label='Horizontal Grains (Y)', color='orange', alpha=0.7)
 
     ax4.set_title("Grain Analysis (Directional Edge Counts)", fontsize=14) 
     ax4.set_xlabel("Time (s)", fontsize=12)
