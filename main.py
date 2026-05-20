@@ -9,7 +9,7 @@ from dmrobotics import Sensor, put_arrows_on_image
 PIXEL_TO_MM = 20       # pixels per mm
 PIXEL_AREA = 0.0025   # mm^2 per pixel (calibrated from a known reference object) [cite: 261] 
 GEL_THICKNESS = 20.1      # L in mm
-DEPTH_THRESHOLD = 0.015   # Noise floor for contact detection
+DEPTH_THRESHOLD = 0  # Noise floor for contact detection
 H_INITIAL = 10.0         # Physical height of your test object
 
 if __name__ == "__main__":
@@ -139,7 +139,10 @@ if __name__ == "__main__":
     final_strain = (h_final - H_INITIAL) / H_INITIAL
 
     print(f"\nResults Summary:")
-    print(f"Total Area: {area_hist[-1]:.2f} mm^2")
+    max_active_area = np.max(area_hist)
+    min_active_area = np.min(area_hist)
+    print(f"Max Contact Area: {max_active_area:.2f} mm^2")
+    print(f"Min Contact Area: {min_active_area:.2f} mm^2)")
     print(f"Final Strain: {final_strain:.4f}")
 
     # Plotting
@@ -154,7 +157,7 @@ if __name__ == "__main__":
     
     ax1_right = ax1.twinx()
     ax1_right.plot(time_arr, np.array(shear_hist), color='red', linewidth=1.5, linestyle='--', label="Integrated Shear")
-    ax1_right.set_ylabel("Integrated Shear Displacement (sum mm)", color='red', fontsize=12)
+    ax1_right.set_ylabel("Shear Displacement (mm)", color='red', fontsize=12)
     
     # Combine legends smoothly
     lines1, labels1 = ax1.get_legend_handles_labels()
@@ -163,7 +166,7 @@ if __name__ == "__main__":
     
 
     # Annotate the Strain on the plot for clarity, since it's a key result of the experiment
-    plt.figtext(0.15, 0.02, f"Calculated Final Strain: {final_strain:.4f}",fontsize=12, fontweight='bold', bbox=dict(facecolor='white', alpha=0.5))
+    #plt.figtext(0.15, 0.02, f"Calculated Final Strain: {final_strain:.4f}",fontsize=12, fontweight='bold', bbox=dict(facecolor='white', alpha=0.5))
 
     #Velocity Profile (Dip Detection)
     ax3.plot(time_arr[1:], velocity, color='green')
