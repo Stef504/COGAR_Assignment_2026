@@ -164,9 +164,19 @@ if __name__ == "__main__":
     lines2, labels2 = ax1_right.get_legend_handles_labels()
     ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
     
-
+    # === Subplot 2: Isolated Shear Force Profile ===
+    # FIXED: This was previously overlapping or skipping, leaving a blank graph!
+    ax2.plot(time_arr, np.array(shear_hist), color='red', linewidth=2)
+    ax2.set_title("Total Integrated Shear Displacement over Time", fontsize=14)
+    ax2.set_ylabel("Shear Volumetric Integral (mm)", color='red', fontsize=12)
+    ax2.grid(True, linestyle='--', alpha=0.5)
+    
+    # Place your text annotation safely pinned underneath Subplot 2
+    ax2.text(0.02, 0.05, f"Calculated Final Strain: {final_strain:.4f}", 
+             transform=ax2.transAxes, fontsize=11, fontweight='bold', 
+             bbox=dict(facecolor='white', alpha=0.8))
     # Annotate the Strain on the plot for clarity, since it's a key result of the experiment
-    #plt.figtext(0.15, 0.02, f"Calculated Final Strain: {final_strain:.4f}",fontsize=12, fontweight='bold', bbox=dict(facecolor='white', alpha=0.5))
+    plt.figtext(0.15, 0.02, f"Calculated Final Strain: {final_strain:.4f}",fontsize=12, fontweight='bold', bbox=dict(facecolor='white', alpha=0.5))
 
     #Velocity Profile (Dip Detection)
     ax3.plot(time_arr[1:], velocity, color='green')
