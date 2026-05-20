@@ -17,12 +17,20 @@ if __name__ == "__main__":
     sensor = Sensor(dev_serial_id)
     
     # Data Storage for Matplotlib
-    time_hist, shear_hist, depth_hist, area_hist = [], [], [], []
+    time_hist, shear_hist, depth_hist, area_hist, x_edge_hist, y_edge_hist = [], [], [], [], [], []
     
     start_time = time.time()
     is_compressing = False
     contact_start_depth = 0.0
+    # Pre-initialize visualizations to avoid NameErrors
+    grad_vis = np.zeros((240, 320), dtype=np.uint8)
 
+    # 2. HARDWARE TARE (CRITICAL PLACE TO ADD THIS) [cite: 262, 743]
+    # Ensure nothing is touching the gel right now! 
+    print("Taring sensor baseline. Ensure surface is completely untouched...")
+    sensor.reset() 
+    time.sleep(1.0) # Give the internal CUDA solver a moment to finalize the clear [cite: 268]
+    
     print("Experiment Active. Press 'q' to stop and generate graphs.")
 
     while True:
@@ -56,8 +64,32 @@ if __name__ == "__main__":
         masked_gray = cv2.bitwise_and(gray, gray, mask=contact_mask)
         
         # Derivatives to find grain orientation
+
+        # 1. Math: Derivatives to find grain orientation
         grad_x = cv2.Sobel(masked_gray, cv2.CV_64F, 1, 0, ksize=3)
         grad_y = cv2.Sobel(masked_gray, cv2.CV_64F, 0, 1, ksize=3)
+
+        # 2. Connection: Combine X and Y into a Magnitude Map for visualization
+        # This is the step that was missing
+        grad_mag = cv2.magnitude(grad_x, grad_y)
+
+        # Only consider pixels where the gradient is 'strong' enough to be a grain, TRAIL and ERROR
+        MAG_THRESHOLD = 50.0 
+        # This creates a binary map: 255 where grain is strong, 0 elsewhere
+        _, grain_mask = cv2.threshold(grad_mag, MAG_THRESHOLD, 255, cv2.THRESH_BINARY)
+        grain_mask = grain_mask.astype(np.uint8)
+
+        # 4. Count Directional Edges
+        # We only count gradients where the grain_mask is active
+        # Use np.abs because an edge can be a transition from light-to-dark or dark-to-light
+        edge_count_x = np.sum(np.abs(grad_x) > MAG_THRESHOLD)
+        edge_count_y = np.sum(np.abs(grad_y) > MAG_THRESHOLD)
+
+        # Record edge counts for later analysis
+        x_edge_hist.append(edge_count_x)
+        y_edge_hist.append(edge_count_y)
+
+        # 4. Calculation: Edge density for your material analysis
         edge_density = np.sum(np.abs(grad_x) + np.abs(grad_y))
 
         # --- 6. TRIGGER LOGIC FOR STRAIN ---
@@ -103,7 +135,7 @@ if __name__ == "__main__":
     print(f"Final Strain: {final_strain:.4f}")
 
     # Plotting
-    fig, (ax1, ax2,ax3) = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
+    fig, (ax1, ax2,ax3,ax4) = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
     
     #Identation Profile (from Depth Map)
     ax1.plot(time_arr, depth_arr, color='blue', linewidth=2)
@@ -119,11 +151,11 @@ if __name__ == "__main__":
     ax2.plot(time_arr, np.array(shear_hist), color='red', linewidth=2)
     ax2.set_title("Shear Force Profile over Time", fontsize=14)
     ax2.set_xlabel("Time (s)", fontsize=12)
-    ax2.set_ylabel("Shear Force (N)", color='red', fontsize=12)
+    ax2.set_ylabel("Total Shear Displacement (mm)", color='red', fontsize=12)
     ax2.grid(True, linestyle='--', alpha=0.5)
     
 
-    # Annotate the Strain on the plot for your report
+    # Annotate the Strain on the plot for clarity, since it's a key result of the experiment
     plt.figtext(0.15, 0.02, f"Calculated Final Strain: {final_strain:.4f}",fontsize=12, fontweight='bold', bbox=dict(facecolor='white', alpha=0.5))
 
     #Velocity Profile (Dip Detection)
@@ -132,6 +164,16 @@ if __name__ == "__main__":
     ax3.set_xlabel("Time (s)", fontsize=12)
     ax3.set_ylabel("Velocity (mm/s)", color='green', fontsize=12)
     ax3.grid(True, linestyle='--', alpha=0.5)
+
+    #Topology Profile (Contact Area)
+    ax4.bar(time_hist, edge_x_hist, width=0.1, label='Vertical Grains (X)', color='purple', alpha=0.7)
+    ax4.bar(time_hist, edge_y_hist, width=0.1, bottom=edge_x_hist, label='Horizontal Grains (Y)', color='orange', alpha=0.7)
+
+    ax4.set_title("Grain Analysis (Directional Edge Counts)", fontsize=14) 
+    ax4.set_xlabel("Time (s)", fontsize=12)
+    ax4.set_ylabel("Number of Edges", fontsize=12)
+    ax4.legend()
+    ax4.grid(True, linestyle='--', alpha=0.5)
 
     plt.tight_layout()
     plt.show()

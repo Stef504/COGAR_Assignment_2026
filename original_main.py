@@ -12,6 +12,7 @@ if __name__ == "__main__":
     black_img = np.stack([black_img]*3, axis=-1) 
 
 
+
     while True:
         img = sensor.getRawImage()
         frame_num += 1.0
