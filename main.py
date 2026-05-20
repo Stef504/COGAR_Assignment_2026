@@ -9,7 +9,7 @@ from dmrobotics import Sensor, put_arrows_on_image
 PIXEL_TO_MM = 20       # pixels per mm
 PIXEL_AREA = 0.0025   # mm^2 per pixel (calibrated from a known reference object) [cite: 261] 
 GEL_THICKNESS = 20.1      # L in mm
-DEPTH_THRESHOLD = 0  # Noise floor for contact detection
+DEPTH_THRESHOLD = 0.015  # Noise floor for contact detection
 H_INITIAL = 10.0         # Physical height of your test object
 
 if __name__ == "__main__":
