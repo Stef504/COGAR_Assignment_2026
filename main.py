@@ -79,7 +79,7 @@ if __name__ == "__main__":
         grad_mag = cv2.magnitude(grad_x, grad_y)
 
         # Only consider pixels where the gradient is 'strong' enough to be a grain, TRAIL and ERROR
-        MAG_THRESHOLD = 45
+        MAG_THRESHOLD = 0
         # This creates a binary map: 255 where grain is strong, 0 elsewhere
         _, grain_mask = cv2.threshold(grad_mag, MAG_THRESHOLD, 255, cv2.THRESH_BINARY)
         grain_mask = grain_mask.astype(np.uint8)
