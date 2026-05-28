@@ -188,11 +188,11 @@ if __name__ == "__main__":
     #Topology Profile (Contact Area)
     ax4.plot(time_arr, x_edge_hist, color='purple', linewidth=2, label='Vertical Grains (X)')
     ax4.plot(time_arr, y_edge_hist, color='orange', linewidth=2, label='Horizontal Grains (Y)')
-    ax4.set_title("Grain Analysis (Directional Edge Counts)", fontsize=14) [cite: 992]
-    ax4.set_xlabel("Time (s)", fontsize=12) [cite: 992]
-    ax4.set_ylabel("Number of Edges", fontsize=12) [cite: 992]
+    ax4.set_title("Grain Analysis (Directional Edge Counts)", fontsize=14) 
+    ax4.set_xlabel("Time (s)", fontsize=12) 
+    ax4.set_ylabel("Number of Edges", fontsize=12)
     ax4.legend(loc='upper left')
-    ax4.grid(True, linestyle='--', alpha=0.5) [cite: 992]
+    ax4.grid(True, linestyle='--', alpha=0.5) 
 
     plt.tight_layout()
     plt.show()
