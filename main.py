@@ -7,13 +7,13 @@ from dmrobotics import Sensor, put_arrows_on_image
 # --- 1. CONFIGURATION & CALIBRATION ---
 # These constants are derived from your sensor datasheet or manual calibration
 PIXEL_TO_MM = 20       # pixels per mm
-PIXEL_AREA = 0.0025   # mm^2 per pixel (calibrated from a known reference object) [cite: 261] 
+PIXEL_AREA = (16.0 * 12.0 / (320 * 240))   # mm^2 per pixel (calibrated from a known reference object) [cite: 261] 
 GEL_THICKNESS = 20.1      # L in mm
 DEPTH_THRESHOLD = 0.015  # Noise floor for contact detection
 H_INITIAL = 10.0         # Physical height of your test object
 
 if __name__ == "__main__":
-    dev_serial_id = "S2508080042"
+    dev_serial_id = "S2508080077"
     sensor = Sensor(dev_serial_id)
     
     # Data Storage for Matplotlib
@@ -186,14 +186,13 @@ if __name__ == "__main__":
     ax3.grid(True, linestyle='--', alpha=0.5)
 
     #Topology Profile (Contact Area)
-    ax4.bar(time_hist, x_edge_hist, width=0.1, label='Vertical Grains (X)', color='purple', alpha=0.7)
-    ax4.bar(time_hist, y_edge_hist, width=0.1, bottom=x_edge_hist, label='Horizontal Grains (Y)', color='orange', alpha=0.7)
-
-    ax4.set_title("Grain Analysis (Directional Edge Counts)", fontsize=14) 
-    ax4.set_xlabel("Time (s)", fontsize=12)
-    ax4.set_ylabel("Number of Edges", fontsize=12)
-    ax4.legend()
-    ax4.grid(True, linestyle='--', alpha=0.5)
+    ax4.plot(time_arr, x_edge_hist, color='purple', linewidth=2, label='Vertical Grains (X)')
+    ax4.plot(time_arr, y_edge_hist, color='orange', linewidth=2, label='Horizontal Grains (Y)')
+    ax4.set_title("Grain Analysis (Directional Edge Counts)", fontsize=14) [cite: 992]
+    ax4.set_xlabel("Time (s)", fontsize=12) [cite: 992]
+    ax4.set_ylabel("Number of Edges", fontsize=12) [cite: 992]
+    ax4.legend(loc='upper left')
+    ax4.grid(True, linestyle='--', alpha=0.5) [cite: 992]
 
     plt.tight_layout()
     plt.show()
