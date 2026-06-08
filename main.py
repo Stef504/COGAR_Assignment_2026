@@ -15,14 +15,14 @@ DEPTH_THRESHOLD = 0.015  # Noise floor for contact detection
 H_INITIAL = 10.0         # Physical height of your test object
 
 # 2. CONFIGURATION VARIABLES (Change these manually in your script before you hit run!)
-MATERIAL_NAME = "Plastic_Jug"       # Change to "Wood", "Glass", etc.
+MATERIAL_NAME = "plastic_jug"       # Change to "Wood", "Glass", etc.
 ORIENTATION   = "Down"   # Change to "Vertical", "Horizontal", etc.
 REPETITION    = 1               # Change from 1 through 10 as you repeat the action
 
 if __name__ == "__main__":
 
 
-    dev_serial_id = "S2508080077"
+    dev_serial_id = "S2508080069"
     sensor = Sensor(dev_serial_id)
     
     # Data Storage for Matplotlib
