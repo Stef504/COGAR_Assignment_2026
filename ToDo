@@ -1,5 +1,8 @@
 - Save all recordings of the maps (shear, raw image, depth, deformation) 
-- Do time series anylsis
+- Do time series anylsis -gievn from shear, depth, tangential velocity (sliding), normal velocity(quick jumps)
 - Test with different directions of first manually rubbing the material in different directions (⬆️⬇️⬅️➡️↗️↘️↙️)
+- compute 30 samples per orientation 
 - In corporating Baxter with a force controller where maybe we have static constant force applied and then manual movement
 - Try incorporate classification technique but first collecting and anlysing the trends of each material (plastic, wood, glass, metal) 
+- Classification technqiue is the time series transformer 
+- 
