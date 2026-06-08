@@ -1,3 +1,5 @@
+import numpy as np
+
 # === DEFINE THE PREPROCESSING FUNCTION HERE ===
 def preprocess_experiment_run(time_hist, depth_hist, shear_hist, target_len=500):
     """

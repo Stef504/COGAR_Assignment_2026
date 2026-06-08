@@ -15,10 +15,9 @@ H_INITIAL = 10.0         # Physical height of your test object
 
 if __name__ == "__main__":
 
-    dev_serial_id = 0  
+
+    dev_serial_id = "S2508080077"
     sensor = Sensor(dev_serial_id)
-    #dev_serial_id = "7&2D3BE294&0&0000" #"S2508080077"
-    #sensor = Sensor(dev_serial_id)
     
     # Data Storage for Matplotlib
     time_hist, shear_hist, depth_hist, area_hist, x_edge_hist, y_edge_hist = [], [], [], [], [], []
@@ -102,19 +101,19 @@ if __name__ == "__main__":
 
 
     # 1. Aligns derivatives and shapes your 3-5 second swipe into a fixed 500-step matrix
-    fixed_length_sequence = preprocess_experiment_run(time_hist, depth_hist, shear_hist)
+    #fixed_length_sequence = preprocess_experiment_run(time_hist, depth_hist, shear_hist)
 
     # 2. CONFIGURATION VARIABLES (Change these manually in your script before you hit run!)
-    MATERIAL_NAME = "Plastic"       # Change to "Wood", "Glass", etc.
-    ORIENTATION   = "Diagonal_Up"   # Change to "Vertical", "Horizontal", etc.
-    REPETITION    = 1               # Change from 1 through 10 as you repeat the action
+    #MATERIAL_NAME = "Plastic"       # Change to "Wood", "Glass", etc.
+    #ORIENTATION   = "Diagonal_Up"   # Change to "Vertical", "Horizontal", etc.
+    #REPETITION    = 1               # Change from 1 through 10 as you repeat the action
 
     # 3. Create the unique filename programmatically
-    filename = f"data/{MATERIAL_NAME}_{ORIENTATION}_rep{REPETITION}.npy"
+    #filename = f"data/{MATERIAL_NAME}_{ORIENTATION}_rep{REPETITION}.npy"
     
     # 4. Save the processed time series to disk
-    np.save(filename, fixed_length_sequence)
-    print(f"\n[SUCCESS] Saved experimental swipe data to: {filename}")
+    #np.save(filename, fixed_length_sequence)
+    #print(f"\n[SUCCESS] Saved experimental swipe data to: {filename}")
 
 
     # --- 8. POST-EXPERIMENT ANALYSIS (NumPy & Matplotlib) ---
