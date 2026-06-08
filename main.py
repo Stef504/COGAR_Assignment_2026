@@ -1,3 +1,4 @@
+import os
 import time
 import cv2
 import numpy as np
@@ -12,6 +13,11 @@ PIXEL_AREA = (16.0 * 12.0 / (320 * 240))   # mm^2 per pixel (calibrated from a k
 GEL_THICKNESS = 20.1      # L in mm
 DEPTH_THRESHOLD = 0.015  # Noise floor for contact detection
 H_INITIAL = 10.0         # Physical height of your test object
+
+# 2. CONFIGURATION VARIABLES (Change these manually in your script before you hit run!)
+MATERIAL_NAME = "Plastic_Jug"       # Change to "Wood", "Glass", etc.
+ORIENTATION   = "Down"   # Change to "Vertical", "Horizontal", etc.
+REPETITION    = 1               # Change from 1 through 10 as you repeat the action
 
 if __name__ == "__main__":
 
@@ -100,22 +106,6 @@ if __name__ == "__main__":
     cv2.destroyAllWindows()
 
 
-    # 1. Aligns derivatives and shapes your 3-5 second swipe into a fixed 500-step matrix
-    #fixed_length_sequence = preprocess_experiment_run(time_hist, depth_hist, shear_hist)
-
-    # 2. CONFIGURATION VARIABLES (Change these manually in your script before you hit run!)
-    #MATERIAL_NAME = "Plastic"       # Change to "Wood", "Glass", etc.
-    #ORIENTATION   = "Diagonal_Up"   # Change to "Vertical", "Horizontal", etc.
-    #REPETITION    = 1               # Change from 1 through 10 as you repeat the action
-
-    # 3. Create the unique filename programmatically
-    #filename = f"data/{MATERIAL_NAME}_{ORIENTATION}_rep{REPETITION}.npy"
-    
-    # 4. Save the processed time series to disk
-    #np.save(filename, fixed_length_sequence)
-    #print(f"\n[SUCCESS] Saved experimental swipe data to: {filename}")
-
-
     # --- 8. POST-EXPERIMENT ANALYSIS (NumPy & Matplotlib) ---
     depth_arr = np.array(depth_hist)
     shear_arr = np.array(shear_hist)
@@ -185,6 +175,32 @@ if __name__ == "__main__":
     ax4.set_xlabel("Time (s)", fontsize=11)
     ax4.set_ylabel("Velocity (mm/s^2)", color='crimson', fontsize=11)
     ax4.grid(True, linestyle='--', alpha=0.5)
+
+
+    # === AUTOMATIC GRAPH SAVING LOGIC ===
+    # 1. Create a "plots" directory if it doesn't exist on your PC yet
+    if not os.path.exists("plots"):
+        os.makedirs("plots")
+        
+    # 2. Build a matching graph filename programmatically
+    graph_filename = f"plots/{MATERIAL_NAME}_{ORIENTATION}_rep{REPETITION}_analysis.png"
+    
+    # 3. Save the crisp high-resolution figure to your PC disk
+    plt.savefig(graph_filename, dpi=300)
+    print(f"[SUCCESS] Diagnostic plot automatically saved to: {graph_filename}")
+
+    # === AUTOMATIC DATA MATRIX SAVING LOGIC ===
+    # Create a "data" directory if it doesn't exist yet
+    if not os.path.exists("data"):
+        os.makedirs("data")
+
+    # 1. Aligns derivatives and shapes your 3-5 second swipe into a fixed 500-step matrix
+    # Format and save the numerical sequence array for your Transformer
+    #fixed_length_sequence = preprocess_experiment_run(time_hist, depth_hist, shear_hist)
+    #matrix_filename = f"data/{MATERIAL_NAME}_{ORIENTATION}_rep{REPETITION}.npy"
+    #np.save(matrix_filename, fixed_length_sequence)
+    #print(f"[SUCCESS] Time-series data matrix saved to: {matrix_filename}")
+
 
     plt.tight_layout()
     plt.show()
