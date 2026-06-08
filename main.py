@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from dmrobotics import Sensor, put_arrows_on_image
+from utilities import preprocess_experiment_run
 
 # --- 1. CONFIGURATION & CALIBRATION ---
 # These constants are derived from your sensor datasheet or manual calibration
@@ -13,8 +14,11 @@ DEPTH_THRESHOLD = 0.015  # Noise floor for contact detection
 H_INITIAL = 10.0         # Physical height of your test object
 
 if __name__ == "__main__":
-    dev_serial_id = "S2508080077"
+
+    dev_serial_id = 0  
     sensor = Sensor(dev_serial_id)
+    #dev_serial_id = "7&2D3BE294&0&0000" #"S2508080077"
+    #sensor = Sensor(dev_serial_id)
     
     # Data Storage for Matplotlib
     time_hist, shear_hist, depth_hist, area_hist, x_edge_hist, y_edge_hist = [], [], [], [], [], []
@@ -25,7 +29,7 @@ if __name__ == "__main__":
     # Pre-initialize visualizations to avoid NameErrors
     grad_vis = np.zeros((240, 320), dtype=np.uint8)
 
-    # 2. HARDWARE TARE (CRITICAL PLACE TO ADD THIS) [cite: 262, 743]
+    # 2. HARDWARE TARE 
     # Ensure nothing is touching the gel right now! 
     print("Taring sensor baseline. Ensure surface is completely untouched...")
     sensor.reset() 
@@ -68,36 +72,7 @@ if __name__ == "__main__":
             gray = img_raw
 
         
-        # Derivatives to find grain orientation
-
-        # 1. Math: Derivatives to find grain orientation
-        grad_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
-        grad_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
-
-        # 2. Connection: Combine X and Y into a Magnitude Map for visualization
-        # This is the step that was missing
-        grad_mag = cv2.magnitude(grad_x, grad_y)
-
-        # Only consider pixels where the gradient is 'strong' enough to be a grain, TRAIL and ERROR
-        MAG_THRESHOLD = 0
-        # This creates a binary map: 255 where grain is strong, 0 elsewhere
-        _, grain_mask = cv2.threshold(grad_mag, MAG_THRESHOLD, 255, cv2.THRESH_BINARY)
-        grain_mask = grain_mask.astype(np.uint8)
-
-        masked_gray = cv2.bitwise_and(gray, gray, mask=contact_mask)
-        # 4. Count Directional Edges
-        # We only count gradients where the grain_mask is active
-        # Use np.abs because an edge can be a transition from light-to-dark or dark-to-light
-        edge_count_x = np.sum((np.abs(grad_x) > MAG_THRESHOLD) & (masked_gray > 0))
-        edge_count_y = np.sum((np.abs(grad_y) > MAG_THRESHOLD) & (masked_gray > 0))
-
-        # Record edge counts for later analysis
-        x_edge_hist.append(edge_count_x)
-        y_edge_hist.append(edge_count_y)
-
-        # 4. Calculation: Edge density for your material analysis
-        edge_density = np.sum(np.abs(grad_x) + np.abs(grad_y))
-
+        
         # --- 6. TRIGGER LOGIC FOR STRAIN ---
         # Capturing the 'Initial' state at first meaningful contact
         max_depth = np.max(depth_map)
@@ -114,10 +89,9 @@ if __name__ == "__main__":
 
         # --- 7. VISUALIZATION ---
         cv2.imshow('1. Raw Image', gray)
-        cv2.imshow('2. Gradient Map (Grains)', grad_vis)
-        cv2.imshow('3. Depth Heatmap', cv2.applyColorMap((depth_smooth*100).astype('uint8'), cv2.COLORMAP_HOT))        
+        cv2.imshow('2. Depth Heatmap', cv2.applyColorMap((depth_smooth*100).astype('uint8'), cv2.COLORMAP_HOT))        
         # Display the live directional field
-        cv2.imshow('4. Tangential Shear Vectors', vector_vis)
+        cv2.imshow('3. Tangential Shear Vectors', vector_vis)
         
         k = cv2.waitKey(3)
         if k & 0xFF == ord('q'):
@@ -126,12 +100,33 @@ if __name__ == "__main__":
     sensor.disconnect()
     cv2.destroyAllWindows()
 
+
+    # 1. Aligns derivatives and shapes your 3-5 second swipe into a fixed 500-step matrix
+    fixed_length_sequence = preprocess_experiment_run(time_hist, depth_hist, shear_hist)
+
+    # 2. CONFIGURATION VARIABLES (Change these manually in your script before you hit run!)
+    MATERIAL_NAME = "Plastic"       # Change to "Wood", "Glass", etc.
+    ORIENTATION   = "Diagonal_Up"   # Change to "Vertical", "Horizontal", etc.
+    REPETITION    = 1               # Change from 1 through 10 as you repeat the action
+
+    # 3. Create the unique filename programmatically
+    filename = f"data/{MATERIAL_NAME}_{ORIENTATION}_rep{REPETITION}.npy"
+    
+    # 4. Save the processed time series to disk
+    np.save(filename, fixed_length_sequence)
+    print(f"\n[SUCCESS] Saved experimental swipe data to: {filename}")
+
+
     # --- 8. POST-EXPERIMENT ANALYSIS (NumPy & Matplotlib) ---
     depth_arr = np.array(depth_hist)
+    shear_arr = np.array(shear_hist)
     time_arr = np.array(time_hist)
     
-    # Calculate Velocity (Derivative) to find the mechanical 'Dip'
-    velocity = np.diff(depth_arr) / np.diff(time_arr)
+    # Calculate Tnagential Velocity (Derivative) to find when the gel transitions from sticking to slipping (the "dip" in the shear curve)
+    velocity = np.diff(shear_hist) / np.diff(time_arr)
+
+    # Calculate decompressesion/ compression slip velocity from the depth
+    normal_velocity = np.diff(depth_arr) / np.diff(time_arr)
     
     # Strain Calculation: (Final H - Initial H) / Initial H
     delta_depth = depth_arr[-1] - contact_start_depth
@@ -143,7 +138,7 @@ if __name__ == "__main__":
     min_active_area = np.min(area_hist)
     print(f"Max Contact Area: {max_active_area:.2f} mm^2")
     print(f"Min Contact Area: {min_active_area:.2f} mm^2)")
-    print(f"Final Strain: {final_strain:.4f}")
+    print(f"Final deformation of sensor: {delta_depth:.4f}")
 
     # Plotting
     fig, (ax1, ax2,ax3,ax4) = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
@@ -165,34 +160,33 @@ if __name__ == "__main__":
     ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
     
     # === Subplot 2: Isolated Shear Force Profile ===
-    # FIXED: This was previously overlapping or skipping, leaving a blank graph!
     ax2.plot(time_arr, np.array(shear_hist), color='red', linewidth=2)
     ax2.set_title("Total Integrated Shear Displacement over Time", fontsize=14)
     ax2.set_ylabel("Shear Volumetric Integral (mm)", color='red', fontsize=12)
     ax2.grid(True, linestyle='--', alpha=0.5)
     
     # Place your text annotation safely pinned underneath Subplot 2
-    ax2.text(0.02, 0.05, f"Calculated Final Strain: {final_strain:.4f}", 
+    ax2.text(0.02, 0.05, f"Calculated Final Strain: {delta_depth:.4f}", 
              transform=ax2.transAxes, fontsize=11, fontweight='bold', 
              bbox=dict(facecolor='white', alpha=0.8))
     # Annotate the Strain on the plot for clarity, since it's a key result of the experiment
-    plt.figtext(0.15, 0.02, f"Calculated Final Strain: {final_strain:.4f}",fontsize=12, fontweight='bold', bbox=dict(facecolor='white', alpha=0.5))
+    plt.figtext(0.15, 0.02, f"Calculated Final Strain: {delta_depth:.4f}",fontsize=12, fontweight='bold', bbox=dict(facecolor='white', alpha=0.5))
 
     #Velocity Profile (Dip Detection)
     ax3.plot(time_arr[1:], velocity, color='green')
-    ax3.set_title("Dip Detection - For velocity changes in shear map", fontsize=14)
+    ax3.set_title("Tangential Velocity - For velocity changes in shear map", fontsize=14)
     ax3.set_xlabel("Time (s)", fontsize=12)
     ax3.set_ylabel("Velocity (mm/s)", color='green', fontsize=12)
     ax3.grid(True, linestyle='--', alpha=0.5)
 
-    #Topology Profile (Contact Area)
-    ax4.plot(time_arr, x_edge_hist, color='purple', linewidth=2, label='Vertical Grains (X)')
-    ax4.plot(time_arr, y_edge_hist, color='orange', linewidth=2, label='Horizontal Grains (Y)')
-    ax4.set_title("Grain Analysis (Directional Edge Counts)", fontsize=14) [cite: 992]
-    ax4.set_xlabel("Time (s)", fontsize=12) [cite: 992]
-    ax4.set_ylabel("Number of Edges", fontsize=12) [cite: 992]
-    ax4.legend(loc='upper left')
-    ax4.grid(True, linestyle='--', alpha=0.5) [cite: 992]
+    # Subplot 4: NEW UN-STACKED TANGENTIAL SLIP VELOCITY (FRICTION SLIP ANALYSIS)
+    # This captures the high-frequency transitions of the hold-and-release pattern directly.
+    ax4.plot(time_arr[1:], normal_velocity, color='crimson', linewidth=1.5)
+    ax4.set_title("Depth Velocity - Changes in depth map", fontsize=13)
+    ax4.set_xlabel("Time (s)", fontsize=11)
+    ax4.set_ylabel("Velocity (mm/s^2)", color='crimson', fontsize=11)
+    ax4.grid(True, linestyle='--', alpha=0.5)
 
     plt.tight_layout()
     plt.show()
+
