@@ -35,121 +35,107 @@ Upgraded for baxter_rosbridge_adapter.
 import argparse
 import sys
 import time
+import roslibpy
 
-import rclpy
-from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped, Pose, Point, Quaternion
-from std_msgs.msg import Header
-
-from baxter_core_msgs.srv import SolvePositionIK
-from baxter_core_msgs.msg import JointCommand
-
-
-class IKServiceClient(Node):
-    def __init__(self, limb):
-        super().__init__(f'rsdk_ik_service_client_{limb}')
+class BaxterRoslibIK:
+    def __init__(self, limb, host='130.251.13.31', port=9090):
         self.limb = limb
         
-        # 1. Setup the IK Service Client (To calculate the math)
+        # 1. Connect directly to Baxter's internal ROS 1 websocket
+        self.client = roslibpy.Ros(host=host, port=port)
+        print(f"Connecting to Baxter rosbridge at ws://{host}:{port}...")
+        self.client.run()
+
+        if not self.client.is_connected:
+            print("Error: Failed to connect to Baxter. Check network ping.")
+            sys.exit(1)
+        print("Connected successfully!")
+
+        # 2. Define the IK Service
         ik_ns = f'/ExternalTools/{limb}/PositionKinematicsNode/IKService'
-        self.ik_client = self.create_client(SolvePositionIK, ik_ns)
-        
-        # 2. Setup the Joint Command Publisher (To physically move the arm)
+        self.ik_service = roslibpy.Service(self.client, ik_ns, 'baxter_core_msgs/SolvePositionIK')
+
+        # 3. Define the Joint Command Publisher
         pub_ns = f'/robot/limb/{limb}/joint_command'
-        self.joint_pub = self.create_publisher(JointCommand, pub_ns, 10)
+        self.joint_pub = roslibpy.Topic(self.client, pub_ns, 'baxter_core_msgs/JointCommand')
 
-    def ik_test(self):
-        # Wait for the IK service to become available on the bridge
-        while not self.ik_client.wait_for_service(timeout_sec=5.0):
-            self.get_logger().info('IK Service not available, waiting again...')
+    def execute_test(self):
+        print("Preparing absolute Cartesian coordinates...")
 
-        ikreq = SolvePositionIK.Request()
-        hdr = Header(stamp=self.get_clock().now().to_msg(), frame_id='base')
-        
-        # Hardcoded Cartesian poses for testing (from the original SDK)
-        poses = {
-            'left': PoseStamped(
-                header=hdr,
-                pose=Pose(
-                    position=Point(x=0.657579481614, y=0.851981417433, z=0.0388352386502),
-                    orientation=Quaternion(x=-0.366894936773, y=0.885980397775, z=0.108155782462, w=0.262162481772),
-                ),
-            ),
-            'right': PoseStamped(
-                header=hdr,
-                pose=Pose(
-                    position=Point(x=0.656982770038, y=-0.852598021641, z=0.0388609422173),
-                    orientation=Quaternion(x=0.367048116303, y=0.885911751787, z=-0.108908281936, w=0.261868353356),
-                ),
-            ),
-        }
+        # Standard Baxter test poses relative to the 'base' frame (the robot's chest)
+        if self.limb == 'left':
+            pos = {'x': 0.6575, 'y': 0.8519, 'z': 0.0388}
+            ori = {'x': -0.3668, 'y': 0.8859, 'z': 0.1081, 'w': 0.2621}
+        else:
+            pos = {'x': 0.6569, 'y': -0.8525, 'z': 0.0388}
+            ori = {'x': 0.3670, 'y': 0.8859, 'z': -0.1089, 'w': 0.2618}
 
-        ikreq.pose_stamp.append(poses[self.limb])
-        # Tell the IK solver to use the arm's current position as the starting seed for the math
-        ikreq.seed_mode = ikreq.SEED_CURRENT
+        # Build the JSON request dictionary
+        request = roslibpy.ServiceRequest({
+            'pose_stamp': [{
+                'header': {'frame_id': 'base'},
+                'pose': {
+                    'position': pos,
+                    'orientation': ori
+                }
+            }],
+            'seed_mode': 1  # 1 = SEED_CURRENT (Start calculating from current arm position)
+        })
 
-        self.get_logger().info("Sending Cartesian coordinates to IK Service...")
+        print(f"Calling IK Service for the {self.limb} arm...")
         
         # Call the service synchronously
-        future = self.ik_client.call_async(ikreq)
-        rclpy.spin_until_future_complete(self, future)
+        try:
+            response = self.ik_service.call(request)
+        except Exception as e:
+            print(f"Service call failed: {e}")
+            return
 
-        if future.result() is not None:
-            resp = future.result()
+        # Check if the math solver found a valid configuration
+        if response and response.get('isValid', [False])[0]:
+            print("\nSUCCESS - Valid Joint Solution Found!")
             
-            # Check if the internal math found a valid joint configuration (isValid[0] == True)
-            if resp.isValid[0]:
-                self.get_logger().info("SUCCESS - Valid Joint Solution Found!")
+            # Extract the 7 joints from the JSON response
+            joint_names = response['joints'][0]['name']
+            joint_positions = response['joints'][0]['position']
+            
+            # Print for terminal verification
+            limb_joints = dict(zip(joint_names, joint_positions))
+            for joint, angle in limb_joints.items():
+                print(f"  {joint}: {angle:.4f}")
+            
+            print("\nPublishing physical movement command...")
+            
+            # Build the Joint Command dictionary (Mode 1 is POSITION_MODE)
+            cmd_msg = {
+                'mode': 1,
+                'names': joint_names,
+                'command': joint_positions
+            }
+            
+            # Publish multiple times to ensure the UDP/Websocket catches the packet
+            for _ in range(5):
+                self.joint_pub.publish(roslibpy.Message(cmd_msg))
+                time.sleep(0.1)
                 
-                # Format solution into a dictionary for terminal verification
-                limb_joints = dict(zip(resp.joints[0].name, resp.joints[0].position))
-                print("\nIK Joint Solution:\n", limb_joints)
-                print("------------------")
-                
-                # --- THE EXECUTION PHASE ---
-                # Build the actual movement message
-                cmd = JointCommand()
-                cmd.mode = JointCommand.POSITION_MODE
-                cmd.names = resp.joints[0].name
-                cmd.command = resp.joints[0].position
-                
-                self.get_logger().info(f"Publishing command to move the {self.limb} arm...")
-                
-                # Publish the command to the bridge. 
-                # (Looping a few times ensures the ROS 1 bridge catches the UDP packet over the network)
-                for _ in range(5):
-                    self.joint_pub.publish(cmd)
-                    time.sleep(0.1)
-                    
-                self.get_logger().info("Movement execution completed.")
-                return 0
-            else:
-                self.get_logger().error("INVALID POSE - No Valid Joint Solution Found. Arm cannot reach this coordinate.")
-                return 1
+            print("Movement execution completed.")
         else:
-            self.get_logger().error("Service call to Baxter IK failed. Check your bridge connection.")
-            return 1
+            print("INVALID POSE - No Valid Joint Solution Found. Coordinate is out of reach.")
 
+    def close(self):
+        self.joint_pub.unadvertise()
+        self.client.terminate()
 
-def main(args=None):
-    rclpy.init(args=args)
+def main():
+    parser = argparse.ArgumentParser(description="Baxter WebSocket IK Client")
+    parser.add_argument('-l', '--limb', choices=['left', 'right'], required=True)
     
-    arg_fmt = argparse.RawDescriptionHelpFormatter
-    parser = argparse.ArgumentParser(formatter_class=arg_fmt, description="Baxter ROS 2 IK Client & Movement Execution")
-    parser.add_argument(
-        '-l', '--limb', choices=['left', 'right'], required=True,
-        help="the limb to test and move"
-    )
-    
-    # Parse arguments (slicing sys.argv to avoid catching internal ROS 2 launch args)
-    parsed_args = parser.parse_args(sys.argv[1:3])
+    # parse_known_args prevents ROS 2 internal launch arguments from crashing the script
+    args, _ = parser.parse_known_args()
 
-    ik_node = IKServiceClient(parsed_args.limb)
-    result = ik_node.ik_test()
-    
-    ik_node.destroy_node()
-    rclpy.shutdown()
-    sys.exit(result)
+    ik_client = BaxterRoslibIK(args.limb)
+    ik_client.execute_test()
+    ik_client.close()
 
 if __name__ == '__main__':
     main()
