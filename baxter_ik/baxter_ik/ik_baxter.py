@@ -32,110 +32,143 @@ Baxter ROS 2 Inverse Kinematics & Execution Client
 Upgraded for baxter_rosbridge_adapter.
 """
 
-import argparse
 import sys
 import time
 import roslibpy
 
-class BaxterRoslibIK:
+class InteractiveSwiper:
     def __init__(self, limb, host='130.251.13.31', port=9090):
         self.limb = limb
-        
-        # 1. Connect directly to Baxter's internal ROS 1 websocket
         self.client = roslibpy.Ros(host=host, port=port)
-        print(f"Connecting to Baxter rosbridge at ws://{host}:{port}...")
+        print(f"\nConnecting to Baxter at ws://{host}:{port}...")
         self.client.run()
 
         if not self.client.is_connected:
-            print("Error: Failed to connect to Baxter. Check network ping.")
+            print("Error: Failed to connect to Baxter's core network.")
             sys.exit(1)
         print("Connected successfully!")
 
-        # 2. Define the IK Service
+        # Setup standard communication services and topics
         ik_ns = f'/ExternalTools/{limb}/PositionKinematicsNode/IKService'
         self.ik_service = roslibpy.Service(self.client, ik_ns, 'baxter_core_msgs/SolvePositionIK')
-
-        # 3. Define the Joint Command Publisher
+        
         pub_ns = f'/robot/limb/{limb}/joint_command'
         self.joint_pub = roslibpy.Topic(self.client, pub_ns, 'baxter_core_msgs/JointCommand')
 
-    def execute_test(self):
-        print("Preparing absolute Cartesian coordinates...")
-
-        # Standard Baxter test poses relative to the 'base' frame (the robot's chest)
-        if self.limb == 'left':
-            pos = {'x': 0.6575, 'y': 0.8519, 'z': 0.0388}
-            ori = {'x': -0.3668, 'y': 0.8859, 'z': 0.1081, 'w': 0.2621}
-        else:
-            pos = {'x': 0.6569, 'y': -0.8525, 'z': 0.0388}
-            ori = {'x': 0.3670, 'y': 0.8859, 'z': -0.1089, 'w': 0.2618}
-
-        # Build the JSON request dictionary
+    def execute_ik_movement(self, x, y, z, orientation):
+        """Sends coordinates to Baxter's IK solver and physically moves the arm."""
         request = roslibpy.ServiceRequest({
             'pose_stamp': [{
                 'header': {'frame_id': 'base'},
                 'pose': {
-                    'position': pos,
-                    'orientation': ori
+                    'position': {'x': x, 'y': y, 'z': z},
+                    'orientation': orientation
                 }
-            }],
-            'seed_mode': 1  # 1 = SEED_CURRENT (Start calculating from current arm position)
+            }]
         })
 
-        print(f"Calling IK Service for the {self.limb} arm...")
-        
-        # Call the service synchronously
-        try:
-            response = self.ik_service.call(request)
-        except Exception as e:
-            print(f"Service call failed: {e}")
-            return
+        response = self.ik_service.call(request)
 
-        # Check if the math solver found a valid configuration
         if response and response.get('isValid', [False])[0]:
-            print("\nSUCCESS - Valid Joint Solution Found!")
-            
-            # Extract the 7 joints from the JSON response
-            joint_names = response['joints'][0]['name']
-            joint_positions = response['joints'][0]['position']
-            
-            # Print for terminal verification
-            limb_joints = dict(zip(joint_names, joint_positions))
-            for joint, angle in limb_joints.items():
-                print(f"  {joint}: {angle:.4f}")
-            
-            print("\nPublishing physical movement command...")
-            
-            # Build the Joint Command dictionary (Mode 1 is POSITION_MODE)
             cmd_msg = {
-                'mode': 1,
-                'names': joint_names,
-                'command': joint_positions
+                'mode': 1, # POSITION_MODE
+                'names': response['joints'][0]['name'],
+                'command': response['joints'][0]['position']
             }
             
-            # Publish multiple times to ensure the UDP/Websocket catches the packet
+            # Publish multiple times to ensure network delivery over the socket
             for _ in range(5):
                 self.joint_pub.publish(roslibpy.Message(cmd_msg))
                 time.sleep(0.1)
                 
-            print("Movement execution completed.")
+            time.sleep(1.5) # Allow physical arm to settle
+            return True
         else:
-            print("INVALID POSE - No Valid Joint Solution Found. Coordinate is out of reach.")
+            print(f"  [IK ERROR] Target position (X:{x:.3f}, Y:{y:.3f}, Z:{z:.3f}) is mathematically unreachable!")
+            return False
+
+    def run_loop(self, start_pos, start_ori, reps, distance, delay):
+        """Executes the automatic swiping repetitions."""
+        base_x = start_pos['x']
+        end_x = base_x + distance
+
+        print("\n" + "="*40)
+        print("         RUNNING EXPERIMENT")
+        print("="*40)
+        print(f"Limb: {self.limb.upper()} | Cycles: {reps} | Distance: {distance*100} cm")
+
+        for i in range(1, reps + 1):
+            print(f"\n--- Cycle {i}/{reps} ---")
+            
+            print(f"  -> Moving to Start Position (X: {base_x:.4f})")
+            if not self.execute_ik_movement(base_x, start_pos['y'], start_pos['z'], start_ori):
+                print("Aborting experiment loop due to IK failure.")
+                break
+            time.sleep(delay)
+
+            print(f"  -> Swiping Forward to End Position (X: {end_x:.4f})")
+            if not self.execute_ik_movement(end_x, start_pos['y'], start_pos['z'], start_ori):
+                print("Aborting experiment loop due to IK failure.")
+                break
+            time.sleep(delay)
+
+        print("\nExperiment execution complete.")
 
     def close(self):
         self.joint_pub.unadvertise()
         self.client.terminate()
 
-def main():
-    parser = argparse.ArgumentParser(description="Baxter WebSocket IK Client")
-    parser.add_argument('-l', '--limb', choices=['left', 'right'], required=True)
-    
-    # parse_known_args prevents ROS 2 internal launch arguments from crashing the script
-    args, _ = parser.parse_known_args()
 
-    ik_client = BaxterRoslibIK(args.limb)
-    ik_client.execute_test()
-    ik_client.close()
+def get_float_input(prompt):
+    """Helper function to guarantee valid numeric entries from the terminal."""
+    while True:
+        try:
+            return float(input(prompt))
+        except ValueError:
+            print("Invalid number. Please enter a valid decimal value.")
+
+
+def main():
+    print("====================================================")
+    print("     BAXTER INTERACTIVE EXPERIMENT SETTING TOOL    ")
+    print("====================================================")
+
+    # 1. Target Arm Configuration
+    limb = ""
+    while limb not in ['left', 'right']:
+        limb = input("Which arm are you using? (left/right): ").strip().lower()
+
+    # 2. Get Cartesian Target Positions
+    print("\n[ Step 1: Enter Position Coordinates (from live_tracker) ]")
+    start_pos = {
+        'x': get_float_input("  Enter START X (meters): "),
+        'y': get_float_input("  Enter START Y (meters): "),
+        'z': get_float_input("  Enter START Z (meters): ")
+    }
+
+    # 3. Get Orientation Quaternion Values
+    print("\n[ Step 2: Enter Orientation Quaternion (from live_tracker) ]")
+    start_ori = {
+        'x': get_float_input("  Enter Quaternion x: "),
+        'y': get_float_input("  Enter Quaternion y: "),
+        'z': get_float_input("  Enter Quaternion z: "),
+        'w': get_float_input("  Enter Quaternion w: ")
+    }
+
+    # 4. Get Experimental Control Constraints
+    print("\n[ Step 3: Configure Swipe Parameters ]")
+    reps = int(get_float_input("  Enter number of swipe repetitions (e.g., 10): "))
+    distance = get_float_input("  Enter linear swipe distance along X axis (meters, e.g., 0.10): ")
+    delay = get_float_input("  Enter stabilization delay between actions (seconds, e.g., 2.0): ")
+
+    # Initialize and run the system
+    swiper = InteractiveSwiper(limb=limb)
+    try:
+        swiper.run_loop(start_pos, start_ori, reps, distance, delay)
+    except KeyboardInterrupt:
+        print("\nExperiment execution suspended via keyboard break.")
+    finally:
+        swiper.close()
 
 if __name__ == '__main__':
     main()
