@@ -32,9 +32,10 @@ def main():
         print(f"pos = {{'x': {pos['x']:.4f}, 'y': {pos['y']:.4f}, 'z': {pos['z']:.4f}}}")
         print(f"ori = {{'x': {ori['x']:.4f}, 'y': {ori['y']:.4f}, 'z': {ori['z']:.4f}, 'w': {ori['w']:.4f}}}")
         print("=========================================")
-
+        sys.stdout.flush()
+        
     # Subscribe to the endpoint state topic
-    topic = roslibpy.Topic(client, f'/robot/limb/{args.limb}/endpoint_state', 'baxter_core_msgs/EndpointState')
+    topic = roslibpy.Topic(client, f'/robot/limb/{args.limb}/endpoint_state', 'baxter_core_msgs/EndpointState',throttle_rate=500)
     topic.subscribe(callback)
 
     try:
