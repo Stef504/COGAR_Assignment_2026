@@ -26,7 +26,10 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'ik_baxter = baxter_ik.ik_baxter:main'
+            'ik_baxter = baxter_ik.ik_baxter:main',
+            'position_kinematics = baxter_ik.position_kinematics:main',
+            'repetitive_ik = baxter_ik.repetitive_ik:main',
+            'test = baxter_ik.test:main'
         ],
     },
 )

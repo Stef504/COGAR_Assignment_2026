@@ -9,10 +9,10 @@
 
   <depend>rclpy</depend>
   <depend>geometry_msgs</depend>
-
-  <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>baxter_core_msgs</depend>
+  
   <depend>launch</depend>
   <depend>launch_ros</depend>
   <depend>robot_state_publisher</depend>
