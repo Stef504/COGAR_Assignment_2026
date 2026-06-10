@@ -16,8 +16,8 @@ H_INITIAL = 10.0         # Physical height of your test object
 
 # 2. CONFIGURATION VARIABLES (Change these manually in your script before you hit run!)
 MATERIAL_NAME = "plastic_jug"       # Change to "Wood", "Glass", etc.
-ORIENTATION   = "Down"   # Change to "Vertical", "Horizontal", etc.
-REPETITION    = 1               # Change from 1 through 10 as you repeat the action
+ORIENTATION   = "Up_Down"   # Change to "Vertical", "Horizontal", etc.
+REPETITION    = 4               # Change from 1 through 10 as you repeat the action
 
 if __name__ == "__main__":
 
@@ -191,15 +191,15 @@ if __name__ == "__main__":
 
     # === AUTOMATIC DATA MATRIX SAVING LOGIC ===
     # Create a "data" directory if it doesn't exist yet
-    if not os.path.exists("data"):
-        os.makedirs("data")
+    if not os.path.exists("DataSets"):
+        os.makedirs("DataSets")
 
     # 1. Aligns derivatives and shapes your 3-5 second swipe into a fixed 500-step matrix
     # Format and save the numerical sequence array for your Transformer
-    #fixed_length_sequence = preprocess_experiment_run(time_hist, depth_hist, shear_hist)
-    #matrix_filename = f"data/{MATERIAL_NAME}_{ORIENTATION}_rep{REPETITION}.npy"
-    #np.save(matrix_filename, fixed_length_sequence)
-    #print(f"[SUCCESS] Time-series data matrix saved to: {matrix_filename}")
+    fixed_length_sequence = preprocess_experiment_run(time_hist, depth_hist, shear_hist)
+    matrix_filename = f"DataSets/Plastic/{MATERIAL_NAME}_{ORIENTATION}_rep{REPETITION}.npy"
+    np.save(matrix_filename, fixed_length_sequence)
+    print(f"[SUCCESS] Time-series data matrix saved to: {matrix_filename}")
 
 
     plt.tight_layout()

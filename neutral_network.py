@@ -1,30 +1,22 @@
+import os
+import glob
 import torch
 import torch.nn as nn
 import numpy as np
-from utilities import preprocess_experiment_run
+from torch.utils.data import Dataset, DataLoader
 
 # --- 1. THE TIME-SERIES TRANSFORMER ARCHITECTURE ---
 class TactileTransformerClassifier(nn.Module):
     def __init__(self, num_features=4, num_classes=3, seq_len=500, d_model=64, nhead=4, num_layers=2):
         super(TactileTransformerClassifier, self).__init__()
-        
-        # Linear projection to map your 4 input channels to the Transformer's internal dimension (d_model)
         self.input_projection = nn.Linear(num_features, d_model)
-        
-        # Positional Encoding: Tells the Transformer the chronological order of your time-series steps
         self.positional_embedding = nn.Parameter(torch.zeros(1, seq_len, d_model))
         
-        # The core Transformer Encoder layers
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=d_model, 
-            nhead=nhead, 
-            dim_feedforward=d_model * 4, 
-            dropout=0.1,
-            batch_first=True  # Keeps shape as [Batch, Seq, Features]
+            d_model=d_model, nhead=nhead, dim_feedforward=d_model * 4, dropout=0.1, batch_first=True
         )
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         
-        # Classification Head: Maps the global temporal features to your final material labels
         self.fc_out = nn.Sequential(
             nn.Linear(d_model, 32),
             nn.ReLU(),
@@ -33,100 +25,134 @@ class TactileTransformerClassifier(nn.Module):
         )
         
     def forward(self, x):
-        # x shape: [Batch, Seq_Len, Num_Features]
-        
-        # Project features and inject temporal position context
         x = self.input_projection(x) + self.positional_embedding
-        
-        # Pass the entire timeline through the Self-Attention layers simultaneously
         x = self.transformer_encoder(x)
-        
-        # Global Average Pooling across the time axis to get a single vector per sample
-        x = torch.mean(x, dim=1)
-        
-        # Compute final classification probabilities
+        x = torch.mean(x, dim=1) # Global Average Pooling
         output = self.fc_out(x)
         return output
 
+# --- 2. THE CUSTOM DATASET LOADER (Reading the Folders) ---
+class DaimonDataset(Dataset):
+    def __init__(self, root_dir):
+        """
+        Scans the root directory (e.g., 'Thesis_Dataset') and maps files to labels.
+        """
+        self.file_paths = []
+        self.labels = []
+        
+        # 1. Define the dictionary mapping your folder names to integer labels
+        self.class_map = {
+            "Glass": 0,
+            "Plastic": 1,
+            "Wood": 2
+        }
+        
+        # 2. Search through the folders and collect the paths to every .npy file
+        for material_name, label_idx in self.class_map.items():
+            # Use glob to find all .npy files inside Material/Orientation folders
+            search_path = os.path.join(root_dir, material_name, "*", "*.npy")
+            found_files = glob.glob(search_path)
+            
+            for file_path in found_files:
+                self.file_paths.append(file_path)
+                self.labels.append(label_idx)
+                
+        print(f"Dataset Loaded: Found {len(self.file_paths)} total trial files.")
 
-# --- 2. PREPARING AND SHAPING YOUR EXPERIMENTAL DATA ---
-def preprocess_experiment_run(time_hist, depth_hist, shear_hist, target_len=500):
-    """
-    Takes your raw lists from a single experiment run, aligns derivatives,
-    and reshapes them into a fixed sequence length window for the neural network.
-    """
-    depth_arr = np.array(depth_hist)
-    shear_arr = np.array(shear_hist)
-    time_arr = np.array(time_hist)
-    
-    # Calculate aligned physical derivatives
-    normal_velocity = np.diff(depth_arr) / np.diff(time_arr)
-    shear_slip_velocity = np.diff(shear_arr) / np.diff(time_arr)
-    
-    # Align lengths by slicing away the first index of the raw metrics
-    depth_aligned = depth_arr[1:]
-    shear_aligned = shear_arr[1:]
-    
-    # Stack channels horizontally into a multivariate time-series matrix
-    # Matrix shape: (Sequence Length, 4 Features)
-    multivariate_matrix = np.column_stack((depth_aligned, shear_aligned, normal_velocity, shear_slip_velocity))
-    
-    # Interpolate/Resize to a fixed length (target_len) so the Transformer layers match
-    current_len = multivariate_matrix.shape[0]
-    indices = np.linspace(0, current_len - 1, target_len).astype(int)
-    fixed_length_sequence = multivariate_matrix[indices]
-    
-    return fixed_length_sequence
+    def __len__(self):
+        return len(self.file_paths)
 
+    def __getitem__(self, idx):
+        # 1. Load the specific .npy file from the hard drive
+        file_path = self.file_paths[idx]
+        data_matrix = np.load(file_path)
+        
+        # 2. Get the corresponding label
+        label = self.labels[idx]
+        
+        # 3. Convert both to PyTorch Tensors
+        # Convert data to Float32 for neural network math
+        tensor_x = torch.tensor(data_matrix, dtype=torch.float32) 
+        # Convert label to Long for Classification loss
+        tensor_y = torch.tensor(label, dtype=torch.long)          
+        
+        return tensor_x, tensor_y
 
-# --- 3. PIPELINE PIPING & TRAINING LOOP ---
+# --- 3. TRAINING LOOP & MEMORY SAVING ---
 if __name__ == "__main__":
-    # Hyperparameters
-    SEQ_LEN = 500       # Every experimental run is normalized to 500 timesteps
-    NUM_FEATURES = 4    # [Depth, Shear, Normal_Vel, Shear_Slip_Vel]
-    NUM_CLASSES = 3     # Example: 0=PLA_Smooth, 1=PLA_Rough, 2=Rubber
+    # --- Configuration ---
+    DATASET_FOLDER = "DataSets" # Ensure this matches your actual folder name
+    BATCH_SIZE = 16 # How many files to process at once before updating weights
+    EPOCHS = 50
+    NUM_CLASSES = 3 
     
-    # Target execution on your dedicated PC GPU if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Running pipeline execution model on: {device}")
+    print(f"Training on device: {device}")
     
-    # Initialize the model
-    model = TactileTransformerClassifier(
-        num_features=NUM_FEATURES, 
-        num_classes=NUM_CLASSES, 
-        seq_len=SEQ_LEN
-    ).to(device)
+    # 1. Initialize the Dataset and DataLoader
+    if not os.path.exists(DATASET_FOLDER):
+        print(f"ERROR: Cannot find folder '{DATASET_FOLDER}'. Please create it and add your data.")
+        exit()
+        
+    dataset = DaimonDataset(root_dir=DATASET_FOLDER)
+    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
     
-    # Define Loss and Optimizer
+    # 2. Initialize the Model
+    model = TactileTransformerClassifier(num_classes=NUM_CLASSES).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     
-    # --- SIMULATED DATA LOADING ---
-    # In your real setup, you will save your preprocessed runs using np.save()
-    # and load them here to train. Let's create dummy shapes for demonstration:
-    num_samples = 60 # e.g., 10 repetitions * 3 materials * 2 orientations
-    dummy_x = torch.randn(num_samples, SEQ_LEN, NUM_FEATURES).to(device)
-    dummy_y = torch.randint(0, NUM_CLASSES, (num_samples,)).to(device)
-    
-    # Simple training loop layout
+    # 3. The Training Loop
+    print("\nStarting Transformer Training...")
     model.train()
-    print("\nBeginning Transformer Training...")
-    for epoch in range(1, 21):
-        optimizer.zero_grad()
+    
+    for epoch in range(1, EPOCHS + 1):
+        running_loss = 0.0
+        correct_predictions = 0
+        total_samples = 0
         
-        # Forward Pass
-        predictions = model(dummy_x)
-        loss = criterion(predictions, dummy_y)
-        
-        # Backward Pass (Backpropagation)
-        loss.backward()
-        optimizer.step()
-        
-        if epoch % 5 == 0:
-            # Calculate running accuracy
-            _, predicted_classes = torch.max(predictions, 1)
-            correct = (predicted_classes == dummy_y).sum().item()
-            accuracy = correct / num_samples * 100
-            print(f"Epoch [{epoch}/20] -> Loss: {loss.item():.4f} | Accuracy: {accuracy:.1f}%")
+        # Loop through batches of data from your folders
+        for batch_x, batch_y in dataloader:
+            # Move data to GPU if available
+            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
             
-    print("\nModel training complete! The Transformer can now extract multivariate stick-slip profiles.")
+            # Reset gradients
+            optimizer.zero_grad()
+            
+            # Forward pass (Guess)
+            predictions = model(batch_x)
+            loss = criterion(predictions, batch_y)
+            
+            # Backward pass (Learn)
+            loss.backward()
+            optimizer.step()
+            
+            # Tracking metrics
+            running_loss += loss.item()
+            _, predicted_classes = torch.max(predictions, 1)
+            correct_predictions += (predicted_classes == batch_y).sum().item()
+            total_samples += batch_y.size(0)
+            
+        # Print Epoch Summary
+        epoch_loss = running_loss / len(dataloader)
+        epoch_acc = (correct_predictions / total_samples) * 100
+        print(f"Epoch [{epoch}/{EPOCHS}] -> Loss: {epoch_loss:.4f} | Accuracy: {epoch_acc:.1f}%")
+
+    # --- 4. SAVING THE MODEL'S MEMORY ---
+    print("\nTraining Complete.")
+     # === AUTOMATIC DATA MATRIX SAVING LOGIC ===
+    # Create a "data" directory if it doesn't exist yet
+    if not os.path.exists("DataSets"):
+        os.makedirs("DataSets")
+
+   # --- 4. SAVING THE MODEL'S MEMORY (Inside neutral_network.py) ---
+    print("\nTraining Complete.")
+    
+    # Create a dynamic filename using the current date and time
+    import datetime
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+    save_path = f"daimon_transformer_{timestamp}.pth"
+    
+    # Use torch.save for the model weights
+    torch.save(model.state_dict(), save_path)
+    print(f"[SUCCESS] Model intelligence saved permanently to: {save_path}")
