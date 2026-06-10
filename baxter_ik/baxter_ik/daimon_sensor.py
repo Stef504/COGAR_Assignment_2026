@@ -16,7 +16,7 @@ H_INITIAL = 10.0
 
 # EXPERIMENT VARIABLES (Change these manually before running)
 MATERIAL_NAME = "plastic_jug"       
-ORIENTATION   = "Up_Down"   
+ORIENTATION   = "Up"   
 
 class DaimonROSLogger:
     def __init__(self, host='130.251.13.31', port=9090):
