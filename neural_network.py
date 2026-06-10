@@ -3,6 +3,8 @@ import glob
 import torch
 import torch.nn as nn
 import numpy as np
+import datetime
+
 from torch.utils.data import Dataset, DataLoader
 
 # --- 1. THE TIME-SERIES TRANSFORMER ARCHITECTURE ---
@@ -35,7 +37,7 @@ class TactileTransformerClassifier(nn.Module):
 class DaimonDataset(Dataset):
     def __init__(self, root_dir):
         """
-        Scans the root directory (e.g., 'Thesis_Dataset') and maps files to labels.
+        Scans the root directory ('DataSets') and maps files to labels.
         """
         self.file_paths = []
         self.labels = []
@@ -44,14 +46,15 @@ class DaimonDataset(Dataset):
         self.class_map = {
             "Glass": 0,
             "Plastic": 1,
-            "Wood": 2
+            "Wood": 2,
+            "Metal": 3
         }
         
         # 2. Search through the folders and collect the paths to every .npy file
         for material_name, label_idx in self.class_map.items():
             # Use glob to find all .npy files inside Material/Orientation folders
             search_path = os.path.join(root_dir, material_name, "*", "*.npy")
-            found_files = glob.glob(search_path)
+            found_files = glob.glob(search_path, recursive=True)
             
             for file_path in found_files:
                 self.file_paths.append(file_path)
@@ -84,7 +87,7 @@ if __name__ == "__main__":
     DATASET_FOLDER = "DataSets" # Ensure this matches your actual folder name
     BATCH_SIZE = 16 # How many files to process at once before updating weights
     EPOCHS = 50
-    NUM_CLASSES = 3 
+    NUM_CLASSES = 4  # Update to include Metal
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training on device: {device}")
@@ -140,13 +143,20 @@ if __name__ == "__main__":
 
     # --- 4. SAVING THE MODEL'S MEMORY ---
     print("\nTraining Complete.")
-     # === AUTOMATIC DATA MATRIX SAVING LOGIC ===
-    # Create a "data" directory if it doesn't exist yet
-    if not os.path.exists("DataSets"):
-        os.makedirs("DataSets")
-
-   # --- 4. SAVING THE MODEL'S MEMORY (Inside neutral_network.py) ---
-    print("\nTraining Complete.")
+    
+    # 1. Define the target directory
+    model_dir = "Saved_Models"
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+        
+    # 2. Build the precise path
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+    filename = f"daimon_transformer_{timestamp}.pth"
+    save_path = os.path.join(model_dir, filename)
+    
+    # 3. Save
+    torch.save(model.state_dict(), save_path)
+    print(f"[SUCCESS] Model intelligence saved permanently to: {save_path}")
     
     # Create a dynamic filename using the current date and time
     import datetime

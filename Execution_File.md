@@ -1,0 +1,63 @@
+## How to execute Baxter, IK, Daimon Sensor and Position Kinematics 
+
+# Position Kinematics:
+- This allows us to find the artesian co-ordinates of the wrist with respect to the base. We feed this value into the inverse kinematics node to move the robot along the x-direction for a slide. 
+- This uses Baxter's built-in FK toolkit.
+- The user can choose which limb to move. 
+# Code: 
+```bash
+ros2 run baxter_ik position_kinematics -l {right/left}
+```
+
+# Inverse Kinematics:
+- To make the tests as uniform as possible, it was decided to use Baxter. This allows repeatability and a continuous force (Baxter uses a spring for its joint – need to check how accurate and continuous the force is???).
+- Using Baxter's built-in commands and computations, we can solve for inverse kinematics and perform the desired motion.
+- This node allows us to choose the desired limb to move.
+- Moves along the x-axis by a user-chosen amount, and it breaks in between each swipe. This break stops and starts the Daimon sensor reading. 
+- Individual readings are required for the neural network (NN).
+- 
+- 
+# Code: 
+```bash
+ros2 run baxter_ik ik_baxter -l {right.left}
+```
+
+## Daimon Sensor
+- This is connected to the sensor on the robot's fingertips.
+- With each swipe the sensor is activated and records the respective arrays of data (depth, shear, shear velocity (derivative of shear), and normal velocity (derivative of depth)). These sets are then fed into the NN. 
+- For accurate representation of the active contact zones, the depth and shear maps/graphs were isolated to focus only on the active area so as to avoid any readings of noise.
+- Bridge of data from the daimon sensor:
+- Raw Image-- (240,320)
+- getDeformation2D-- (240, 320, 2) representing the deformation in the tangential direction (x, y)
+- getDepth-- (240, 320) represents the normal deformation, elastic deformation of the elastomer 
+- getShear-- (240,320,2) tangential deformation information of each pixel in mm (parallel to contact surface)
+- The shear and deformation maps are taken from the raw image and depth maps. The analysis of these graphs and their time derivatives allows us to distinguish between each material, which mainly focuses on the squishableness and roughness of the material. 
+- A helper function was created `Utilities`to stack the arrays (shear, depth, shear velocity, and normal velocity).
+- After an entire experiment of repetitions has been completed, a graph is generated with the respective data. This allows us to visualise whether the data obtained is ideal. (Prior hand testing was done with the chosen variables to validate if a clear difference is noticeable.)
+
+# Code: 
+```bash
+ros2 run baxter_ik daimon_sensor
+```
+
+# Neural Network:
+- Uses the time series transformer neural networking technique to learn from the variables (shear, depth, shear velocity, and depth velocity)
+- It assigns weights to the data and receives penalties (for its incorrect assumptions based (once compared with the actual tensor)).
+- This is executed after taking a certain amount of trails for each material in different directions.
+
+# Material Classification:
+- This takes everything that the neural network learnt and takes the information from the Daimon sensor to provide a probability score of tested material live.
+
+# Executing Baxter:
+- To execute Baxter, the following commands can be run: 
+
+This allows us to visualise Baxter in RVIZ (ensure Baxter is plugged in):
+```bash
+ros2 launch baxter_rosbridge_adapter baxter_visualization.launch.py 
+```
+
+This allows us to control the joint commands:
+```bash
+ros2 run baxter_rosbridge_adapter baxter_cli
+```
+To view what Baxter is cable of and what information we can obtain it was useful to view the `baxter_common_ros2` package. 

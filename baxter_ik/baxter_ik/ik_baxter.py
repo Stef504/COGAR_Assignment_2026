@@ -48,6 +48,9 @@ class InteractiveSwiper:
             sys.exit(1)
         print("Connected successfully!")
 
+        # Broadcasts Baxter's state to the Daimon sensor
+        self.status_pub = roslibpy.Topic(self.client, '/tactile_experiment/status', 'std_msgs/String')
+
         # Setup standard communication services and topics
         ik_ns = f'/ExternalTools/{limb}/PositionKinematicsNode/IKService'
         self.ik_service = roslibpy.Service(self.client, ik_ns, 'baxter_core_msgs/SolvePositionIK')
@@ -101,6 +104,7 @@ class InteractiveSwiper:
             print(f"\n--- Cycle {i}/{reps} ---")
             
             print(f"  -> Moving to Start Position (X: {base_x:.4f})")
+            self.status_pub.publish(roslibpy.Message({'data': f"START"}))
             if not self.execute_ik_movement(base_x, start_pos['y'], start_pos['z'], start_ori):
                 print("Aborting experiment loop due to IK failure.")
                 break
@@ -111,7 +115,10 @@ class InteractiveSwiper:
                 print("Aborting experiment loop due to IK failure.")
                 break
             time.sleep(delay)
+            self.status_pub.publish(roslibpy.Message({'data': f"STOP"}))
+        
 
+        self.status_pub.publish(roslibpy.Message({'data': f"EXPERIMENT_COMPLETE"}))
         print("\nExperiment execution complete.")
 
     def close(self):
