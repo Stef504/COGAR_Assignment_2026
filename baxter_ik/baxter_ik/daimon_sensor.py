@@ -4,9 +4,9 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from dmrobotics import Sensor, put_arrows_on_image
-from utilities import preprocess_experiment_run
+from baxter_ik.utilities import preprocess_experiment_run
 import roslibpy
-import webbrowser
+
 
 
 # --- 1. CONFIGURATION & CALIBRATION ---
@@ -143,9 +143,10 @@ class DaimonROSLogger:
         fig.write_html(html_filename)
         
         print(f"\n[SUCCESS] Interactive Plotly graph saved to: {html_filename}")
+
         
-        # Automatically open it in your default web browser
-        webbrowser.open('file://' + os.path.realpath(html_filename))
+        # Force the ROS node to shut down instantly to avoid hanging threads
+        os._exit(0)
 
     def run_sensor_loop(self):
         while self.client.is_connected:
