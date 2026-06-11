@@ -98,29 +98,44 @@ class DaimonROSLogger:
     def save_local_matrix(self):
         """Processes Local Memory into a matrix and saves the .npy file."""
         if len(self.local_time) < 10:
+            print("  [WARNING] Not enough data to save matrix.")
             return
-            
-        folder_path = f"Dataset/{self.material_name}/{self.orientation}"
+        
+        # 1. Gets: .../baxter_ros2_ws/src/baxter_ik/baxter_ik
+        SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+        
+        # 2. Goes up ONE level to: .../baxter_ros2_ws/src/baxter_ik
+        PACKAGE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+        
+        # 3. Safely build the Dataset path
+        folder_path = os.path.join(PACKAGE_ROOT, "Dataset", self.material_name, self.orientation)
+        
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
             
         fixed_sequence = preprocess_experiment_run(self.local_time, self.local_depth, self.local_shear)
-        filename = f"{folder_path}/{self.material_name}_{self.orientation}_rep{self.current_rep}_{self.current_direction}.npy"
+        filename = os.path.join(folder_path, f"{self.material_name}_{self.orientation}_rep{self.current_rep}_{self.current_direction}.npy")
+        
         np.save(filename, fixed_sequence)
         print(f"  [SAVED NN MATRIX] -> {filename}")
 
     def generate_global_plot(self):
         """Saves the raw global data so it can be viewed interactively offline."""
-        import os
-        WORKSPACE_ROOT = os.path.expanduser("~C1_group/COGAR_Assignment_2026")
-        PLOT_DIR = os.path.join(WORKSPACE_ROOT, "plots")
+        
+        # 1. Gets: .../baxter_ros2_ws/src/baxter_ik/baxter_ik
+        SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+        
+        # 2. Goes up ONE level to: .../baxter_ros2_ws/src/baxter_ik
+        PACKAGE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+        
+        # 3. Safely build the plots path
+        PLOT_DIR = os.path.join(PACKAGE_ROOT, "plots")
         
         if not os.path.exists(PLOT_DIR):
             os.makedirs(PLOT_DIR)
             
         data_filename = os.path.join(PLOT_DIR, f"{self.material_name}_{self.orientation}_GLOBAL_DATA.npz")
         
-        # Save the global arrays into a compressed numpy dictionary
         np.savez(data_filename, 
                  time=np.array(self.global_time), 
                  depth=np.array(self.global_depth), 
