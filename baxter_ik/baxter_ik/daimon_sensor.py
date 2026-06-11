@@ -101,52 +101,23 @@ class DaimonROSLogger:
         print(f"  [SAVED NN MATRIX] -> {filename}")
 
     def generate_global_plot(self):
-        """Uses Global Memory to generate the entire experiment timeline."""
-        depth_arr = np.array(self.global_depth)
-        shear_arr = np.array(self.global_shear)
-        time_arr = np.array(self.global_time)
+        """Saves the raw global data so it can be viewed interactively offline."""
+        import os
+        WORKSPACE_ROOT = os.path.expanduser("~/COGAR_Assignment_2026")
+        PLOT_DIR = os.path.join(WORKSPACE_ROOT, "plots")
         
-        # Calculate Derivatives
-        velocity = np.diff(shear_arr) / np.diff(time_arr)
-        normal_velocity = np.diff(depth_arr) / np.diff(time_arr)
+        if not os.path.exists(PLOT_DIR):
+            os.makedirs(PLOT_DIR)
+            
+        data_filename = os.path.join(PLOT_DIR, f"{MATERIAL_NAME}_{ORIENTATION}_GLOBAL_DATA.npz")
         
-        # Strain Calculation
-        delta_depth = depth_arr[-1] - self.contact_start_depth
-        h_final = H_INITIAL - delta_depth
-        final_strain = (h_final - H_INITIAL) / H_INITIAL
-
-       # Create an interactive 4-pane dashboard
-        fig = make_subplots(rows=4, cols=1, shared_xaxes=True, 
-                            subplot_titles=("Depth & Shear", "Shear Integral", "Shear Velocity", "Depth Velocity"))
-
-        # Pane 1: Depth and Shear
-        fig.add_trace(go.Scatter(x=time_arr, y=depth_arr, name="Depth (mm)", line=dict(color='blue')), row=1, col=1)
-        fig.add_trace(go.Scatter(x=time_arr, y=shear_arr, name="Shear", line=dict(color='red', dash='dash')), row=1, col=1)
-
-        # Pane 2: Shear Integral
-        fig.add_trace(go.Scatter(x=time_arr, y=shear_arr, name="Shear Integral", line=dict(color='red')), row=2, col=1)
-
-        # Pane 3: Shear Velocity
-        fig.add_trace(go.Scatter(x=time_arr[1:], y=velocity, name="Shear Vel", line=dict(color='green')), row=3, col=1)
-
-        # Pane 4: Depth Velocity
-        fig.add_trace(go.Scatter(x=time_arr[1:], y=normal_velocity, name="Depth Vel", line=dict(color='crimson')), row=4, col=1)
-
-        # Formatting
-        fig.update_layout(height=900, title_text=f"Full Experiment Timeline ({MATERIAL_NAME}) - Hover & Scroll to Zoom")
-        
-        # Save as an interactive webpage
-        
-        if not os.path.exists("plots"):
-            os.makedirs("plots")
-        html_filename = f"plots/{MATERIAL_NAME}_{ORIENTATION}_FULL_ANALYSIS.html"
-        fig.write_html(html_filename)
-        
-        print(f"\n[SUCCESS] Interactive Plotly graph saved to: {html_filename}")
-
-        
-        # Force the ROS node to shut down instantly to avoid hanging threads
-        os._exit(0)
+        # Save the global arrays into a compressed numpy dictionary
+        np.savez(data_filename, 
+                 time=np.array(self.global_time), 
+                 depth=np.array(self.global_depth), 
+                 shear=np.array(self.global_shear))
+                 
+        print(f"\n[SUCCESS] Global timeline data saved safely to: {data_filename}")
 
     def run_sensor_loop(self):
         while self.client.is_connected:
