@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from dmrobotics import Sensor, put_arrows_on_image
 from utilities import preprocess_experiment_run
 import roslibpy
+import webbrowser
+
 
 # --- 1. CONFIGURATION & CALIBRATION ---
 PIXEL_TO_MM = 20       
@@ -113,47 +115,37 @@ class DaimonROSLogger:
         h_final = H_INITIAL - delta_depth
         final_strain = (h_final - H_INITIAL) / H_INITIAL
 
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
-        
-        # Subplot 1
-        ax1.plot(time_arr, depth_arr, color='blue', linewidth=2, label="Depth (mm)")
-        ax1.set_ylabel("Depth (mm)", color='blue', fontsize=12)
-        ax1.set_title(f"Full Experiment Timeline ({MATERIAL_NAME})", fontsize=14)
-        ax1.grid(True, linestyle='--', alpha=0.5)
-        
-        ax1_right = ax1.twinx()
-        ax1_right.plot(time_arr, shear_arr, color='red', linewidth=1.5, linestyle='--', label="Integrated Shear")
-        ax1_right.set_ylabel("Shear (mm)", color='red', fontsize=12)
-        
-        lines1, labels1 = ax1.get_legend_handles_labels()
-        lines2, labels2 = ax1_right.get_legend_handles_labels()
-        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
-        
-        # Subplot 2
-        ax2.plot(time_arr, shear_arr, color='red', linewidth=2)
-        ax2.set_ylabel("Shear Integral", color='red', fontsize=12)
-        ax2.grid(True, linestyle='--', alpha=0.5)
-        ax2.text(0.02, 0.05, f"Final Strain: {delta_depth:.4f}", transform=ax2.transAxes, fontsize=11, fontweight='bold', bbox=dict(facecolor='white', alpha=0.8))
+       # Create an interactive 4-pane dashboard
+        fig = make_subplots(rows=4, cols=1, shared_xaxes=True, 
+                            subplot_titles=("Depth & Shear", "Shear Integral", "Shear Velocity", "Depth Velocity"))
 
-        # Subplot 3
-        ax3.plot(time_arr[1:], velocity, color='green')
-        ax3.set_ylabel("Shear Vel (mm/s)", color='green', fontsize=12)
-        ax3.grid(True, linestyle='--', alpha=0.5)
+        # Pane 1: Depth and Shear
+        fig.add_trace(go.Scatter(x=time_arr, y=depth_arr, name="Depth (mm)", line=dict(color='blue')), row=1, col=1)
+        fig.add_trace(go.Scatter(x=time_arr, y=shear_arr, name="Shear", line=dict(color='red', dash='dash')), row=1, col=1)
 
-        # Subplot 4
-        ax4.plot(time_arr[1:], normal_velocity, color='crimson', linewidth=1.5)
-        ax4.set_xlabel("Continuous Experiment Time (s)", fontsize=12)
-        ax4.set_ylabel("Depth Vel (mm/s)", color='crimson', fontsize=11)
-        ax4.grid(True, linestyle='--', alpha=0.5)
+        # Pane 2: Shear Integral
+        fig.add_trace(go.Scatter(x=time_arr, y=shear_arr, name="Shear Integral", line=dict(color='red')), row=2, col=1)
 
+        # Pane 3: Shear Velocity
+        fig.add_trace(go.Scatter(x=time_arr[1:], y=velocity, name="Shear Vel", line=dict(color='green')), row=3, col=1)
+
+        # Pane 4: Depth Velocity
+        fig.add_trace(go.Scatter(x=time_arr[1:], y=normal_velocity, name="Depth Vel", line=dict(color='crimson')), row=4, col=1)
+
+        # Formatting
+        fig.update_layout(height=900, title_text=f"Full Experiment Timeline ({MATERIAL_NAME}) - Hover & Scroll to Zoom")
+        
+        # Save as an interactive webpage
+        
         if not os.path.exists("plots"):
             os.makedirs("plots")
-        graph_filename = f"plots/{MATERIAL_NAME}_{ORIENTATION}_FULL_ANALYSIS.png"
-        plt.savefig(graph_filename, dpi=300)
-        print(f"\n[SUCCESS] Global timeline plot saved to: {graph_filename}")
-
-        plt.tight_layout()
-        plt.show() # This will keep the window open until you manually close it
+        html_filename = f"plots/{MATERIAL_NAME}_{ORIENTATION}_FULL_ANALYSIS.html"
+        fig.write_html(html_filename)
+        
+        print(f"\n[SUCCESS] Interactive Plotly graph saved to: {html_filename}")
+        
+        # Automatically open it in your default web browser
+        webbrowser.open('file://' + os.path.realpath(html_filename))
 
     def run_sensor_loop(self):
         while self.client.is_connected:
