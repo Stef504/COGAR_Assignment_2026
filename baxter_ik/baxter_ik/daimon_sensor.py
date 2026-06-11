@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dmrobotics import Sensor, put_arrows_on_image
 from baxter_ik.utilities import preprocess_experiment_run
+from main import ORIENTATION
 import roslibpy
 
 
@@ -16,12 +17,20 @@ GEL_THICKNESS = 20.1
 DEPTH_THRESHOLD = 0.015  
 H_INITIAL = 10.0         
 
-# EXPERIMENT VARIABLES (Change these manually before running)
-MATERIAL_NAME = "plastic_jug"       
-ORIENTATION   = "Up"   
+
 
 class DaimonROSLogger:
     def __init__(self, host='130.251.13.31', port=9090):
+
+        # --- 1. INTERACTIVE CONFIGURATION ---
+        print("\n" + "="*40)
+        print(" DAIMON SENSOR DATA COLLECTION INITIALIZED")
+        print("="*40)
+        self.material_name = input("Enter Material Name (e.g., Plastic, Wood, Glass, Metal): ").strip()
+        self.orientation = input("Enter Orientation (e.g., Up, Down,Diagonal_Right,Diagonal_Left,Left,Right): ").strip()
+        print(f"\n[TARGET DIRECTORY] -> Dataset/{self.material_name}/{self.orientation}/")
+        print("="*40 + "\n")
+
         # Hardware Setup
         dev_serial_id = "S2508080069" # N160MU2 Camera
         self.sensor = Sensor(dev_serial_id)
@@ -91,25 +100,25 @@ class DaimonROSLogger:
         if len(self.local_time) < 10:
             return
             
-        folder_path = f"Thesis_Dataset/{MATERIAL_NAME}/{ORIENTATION}"
+        folder_path = f"Dataset/{self.material_name}/{self.orientation}"
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
             
         fixed_sequence = preprocess_experiment_run(self.local_time, self.local_depth, self.local_shear)
-        filename = f"{folder_path}/{MATERIAL_NAME}_{ORIENTATION}_rep{self.current_rep}_{self.current_direction}.npy"
+        filename = f"{folder_path}/{self.material_name}_{self.orientation}_rep{self.current_rep}_{self.current_direction}.npy"
         np.save(filename, fixed_sequence)
         print(f"  [SAVED NN MATRIX] -> {filename}")
 
     def generate_global_plot(self):
         """Saves the raw global data so it can be viewed interactively offline."""
         import os
-        WORKSPACE_ROOT = os.path.expanduser("~/COGAR_Assignment_2026")
+        WORKSPACE_ROOT = os.path.expanduser("~C1_group/COGAR_Assignment_2026")
         PLOT_DIR = os.path.join(WORKSPACE_ROOT, "plots")
         
         if not os.path.exists(PLOT_DIR):
             os.makedirs(PLOT_DIR)
             
-        data_filename = os.path.join(PLOT_DIR, f"{MATERIAL_NAME}_{ORIENTATION}_GLOBAL_DATA.npz")
+        data_filename = os.path.join(PLOT_DIR, f"{self.material_name}_{self.orientation}_GLOBAL_DATA.npz")
         
         # Save the global arrays into a compressed numpy dictionary
         np.savez(data_filename, 
