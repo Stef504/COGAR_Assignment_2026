@@ -181,7 +181,10 @@ class DaimonROSLogger:
 
             # Visualization Updates
             vector_vis = put_arrows_on_image(black_img, masked_shear * 20)
-            gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY) if len(img_raw.shape) == 3 else img_raw
+            if len(img_raw.shape) == 3:
+                gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY)
+            else:
+                gray = img_raw
 
             cv2.imshow('1. Raw Image', gray)
             cv2.imshow('2. Depth Heatmap', cv2.applyColorMap((depth_smooth*100).astype('uint8'), cv2.COLORMAP_HOT))        

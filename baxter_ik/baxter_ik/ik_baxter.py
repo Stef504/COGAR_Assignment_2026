@@ -90,7 +90,7 @@ class InteractiveSwiper:
             print(f"  [IK ERROR] Target position (X:{x:.3f}, Y:{y:.3f}, Z:{z:.3f}) is mathematically unreachable!")
             return False
 
-    def run_loop(self, start_pos, start_ori, reps, distance, delay):
+    def run_loop(self, start_pos, start_ori, reps, distance, orientation ,delay):
         """Executes the automatic swiping repetitions."""
         base_x = start_pos['x']
         end_x = base_x + distance
@@ -104,7 +104,7 @@ class InteractiveSwiper:
             print(f"\n--- Cycle {i}/{reps} ---")
             
             print(f"  -> Moving to Start Position (X: {base_x:.4f})")
-            self.status_pub.publish(roslibpy.Message({'data': f"START"}))
+            self.status_pub.publish(roslibpy.Message({'data': f"START_{orientation}_REP_{i}"}))
             if not self.execute_ik_movement(base_x, start_pos['y'], start_pos['z'], start_ori):
                 print("Aborting experiment loop due to IK failure.")
                 break
@@ -115,7 +115,7 @@ class InteractiveSwiper:
                 print("Aborting experiment loop due to IK failure.")
                 break
             time.sleep(delay)
-            self.status_pub.publish(roslibpy.Message({'data': f"STOP"}))
+            self.status_pub.publish(roslibpy.Message({'data': f"STOP"})) 
         
 
         self.status_pub.publish(roslibpy.Message({'data': f"EXPERIMENT_COMPLETE"}))
@@ -145,6 +145,9 @@ def main():
     while limb not in ['left', 'right']:
         limb = input("Which arm are you using? (left/right): ").strip().lower()
 
+    #Choice of orientation for dataset organization
+    print("\n[DATASET ORGANIZATION] -> Choose an orientation label for this experiment run(up,down,NE,SE,SW,NW,left,right).")
+    orientation = input("  Enter orientation label: ").strip().lower()
     # 2. Get Cartesian Target Positions
     print("\n[ Step 1: Enter Position Coordinates (from live_tracker) ]")
     start_pos = {
@@ -171,7 +174,7 @@ def main():
     # Initialize and run the system
     swiper = InteractiveSwiper(limb=limb)
     try:
-        swiper.run_loop(start_pos, start_ori, reps, distance, delay)
+        swiper.run_loop(start_pos, start_ori, reps, distance, orientation, delay)
     except KeyboardInterrupt:
         print("\nExperiment execution suspended via keyboard break.")
     finally:
