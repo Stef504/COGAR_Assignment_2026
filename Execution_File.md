@@ -61,3 +61,18 @@ This allows us to control the joint commands:
 ros2 run baxter_rosbridge_adapter baxter_cli
 ```
 To view what Baxter is cable of and what information we can obtain it was useful to view the `baxter_common_ros2` package. 
+
+## Useful Observations to consider when running Baxter:
+- Baxters joints are springs
+- The longer the during of the movement along x the better "straight" line touch we will get instead of a dip touch. This could be due to stability. 
+- Also when in the initial position, adjust the z axis to be 10cm high because Baxter lowers itself. For example the posistion_kinematics reported its current position in a range in the z-axis from -0.1454 to -0.1468. I adjusted the z-axis in the IK prompt to be -0.1300 and that resulted in smoother slide across the plastic component.
+- Try to keep the downard motion constant across all materials so using trail and error to ensure that when placing an object at a certain location baxter does the same swiping movement. 
+- Second readings for z-axis from position-Kinematics now the range of the most accurate IK is the following with a +/-0.0025
+- x,y,z,qx,qy,qz,qw=[0.7631,0.2538,-0.1350,0.4857,0.5257,0.5141,0.4727]
+
+lmetal_pos:
+[-0.2784,0.5193,-0.8130,0.9906,0.7271,-1.1068, 2.1334]
+
+new lmetal_pos
+[0.0913,0.7647,-0.9407,1.2502,1.1037,-1.1018,2.3926]
+
