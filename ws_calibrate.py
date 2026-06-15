@@ -23,31 +23,37 @@ def main():
         return
     print("Connected successfully!")
 
-    # 1. Enable the Robot
-    print("\n[2] Enabling Robot Motors...")
+    # --- THE MISSING LINK: HARDWARE RESET ---
+    print("\n[2] Clearing internal safety locks (Hardware Reset)...")
+    reset_pub = roslibpy.Topic(client, '/robot/set_super_reset', 'std_msgs/Empty')
+    reset_pub.publish(roslibpy.Message({}))
+    time.sleep(2.0) # Give the motherboard time to clear the errors
+
+    # 3. Enable the Robot
+    print("\n[3] Enabling Robot Motors...")
+    print("    >>> LISTEN CLOSELY: You should hear a physical 'clunk' sound.")
     enable_pub = roslibpy.Topic(client, '/robot/set_super_enable', 'std_msgs/Bool')
     enable_pub.publish(roslibpy.Message({'data': True}))
     time.sleep(2.0) # Give motors time to engage
 
-    # 2. Start Calibration
+    # 4. Start Calibration
     topic_name = f'/robustcontroller/{limb}/CalibrateArm/enable'
     calib_pub = roslibpy.Topic(client, topic_name, 'baxter_maintenance_msgs/CalibrateArmEnable')
 
-    print(f"\n[3] STARTING {limb.upper()} ARM CALIBRATION!")
+    print(f"\n[4] STARTING {limb.upper()} ARM CALIBRATION!")
     print(">>> WARNING: DO NOT TOUCH THE ARM. <<<")
     print(">>> Wait for the arm to stop moving completely (approx 2-5 minutes).")
     print(">>> Press Ctrl+C ONLY when the arm has returned to a resting state.\n")
 
     try:
-        # Baxter's robust controllers require a continuous "heartbeat" at 10Hz
-        # If we stop publishing, Baxter assumes the computer crashed and aborts calibration.
+        # The 10Hz Heartbeat Loop
         ticks = 0
         while client.is_connected:
             calib_pub.publish(roslibpy.Message({
                 'isEnabled': True, 
                 'uid': 'daimon_websocket_calib'
             }))
-            time.sleep(0.1) # 10Hz loop
+            time.sleep(0.1) 
             
             ticks += 1
             if ticks % 100 == 0:
@@ -64,6 +70,7 @@ def main():
         }))
         calib_pub.unadvertise()
         enable_pub.unadvertise()
+        reset_pub.unadvertise()
         client.terminate()
         print("Calibration routine finished safely.")
 
