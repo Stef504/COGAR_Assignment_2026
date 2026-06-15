@@ -1,125 +1,27 @@
-# Copyright (c) 2013-2015, Rethink Robotics
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# 1. Redistributions of source code must retain the above copyright notice,
-#    this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in the
-#    documentation and/or other materials provided with the distribution.
-# 3. Neither the name of the Rethink Robotics nor the names of its
-#    contributors may be used to endorse or promote products derived from
-#    this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-# Copyright (c) 2013-2015, Rethink Robotics
-# All rights reserved.
-
-from copy import deepcopy
-from math import fabs
-
-import rclpy
-from std_msgs.msg import Bool
-
-import baxter_dataflow
-from baxter_core_msgs.msg import HeadPanCommand, HeadState
-from baxter_interface import settings
-
-class Head(object):
-    def __init__(self, node):
-        self._node = node
-        self._state = dict()
-
-        self._pub_pan = self._node.create_publisher(
-            HeadPanCommand,
-            '/robot/head/command_head_pan',
-            10)
-
-        self._pub_nod = self._node.create_publisher(
-            Bool,
-            '/robot/head/command_head_nod',
-            10)
-
-        state_topic = '/robot/head/head_state'
-        self._sub_state = self._node.create_subscription(
-            HeadState,
-            state_topic,
-            self._on_head_state,
-            10)
-
-        baxter_dataflow.wait_for(
-            lambda: len(self._state) != 0,
-            timeout=5.0,
-            timeout_msg=("Failed to get current head state from %s" % (state_topic,)),
-        )
+class WebSocketHead:
+    def __init__(self, client):
+        self.client = client
+        self._state = {}
+        
+        self._pub_pan = roslibpy.Topic(self.client, '/robot/head/command_head_pan', 'baxter_core_msgs/HeadPanCommand')
+        self._pub_nod = roslibpy.Topic(self.client, '/robot/head/command_head_nod', 'std_msgs/Bool')
+        
+        self._sub_state = roslibpy.Topic(self.client, '/robot/head/head_state', 'baxter_core_msgs/HeadState')
+        self._sub_state.subscribe(self._on_head_state)
 
     def _on_head_state(self, msg):
-        self._state['pan'] = msg.pan
-        self._state['panning'] = msg.is_turning
-        self._state['nodding'] = msg.is_nodding
+        self._state = msg
 
-    def pan(self):
-        return self._state['pan']
+    def set_pan(self, angle, speed_ratio=1.0):
+        """Pans the head to a specific angle (radians)."""
+        msg = {
+            'target': float(angle),
+            'speed_ratio': float(speed_ratio),
+            'enable_pan_request': True
+        }
+        self._pub_pan.publish(roslibpy.Message(msg))
 
-    def nodding(self):
-        return self._state['nodding']
-
-    def panning(self):
-        return self._state['panning']
-
-    def set_pan(self, angle, speed=1.0, timeout=10.0, scale_speed=False):
-        if scale_speed:
-            cmd_speed = speed / 100.0
-        else:
-            cmd_speed = speed
-            
-        if (cmd_speed < HeadPanCommand.MIN_SPEED_RATIO or
-              cmd_speed > HeadPanCommand.MAX_SPEED_RATIO):
-            self._node.get_logger().error(("Commanded Speed, ({0}), outside of valid range").format(cmd_speed))
-            
-        msg = HeadPanCommand()
-        msg.target = angle
-        msg.speed_ratio = cmd_speed
-        msg.enable_pan_request = True
-        self._pub_pan.publish(msg)
-
-        if not timeout == 0:
-            baxter_dataflow.wait_for(
-                lambda: (abs(self.pan() - angle) <= settings.HEAD_PAN_ANGLE_TOLERANCE),
-                timeout=timeout,
-                rate=100,
-                timeout_msg="Failed to move head to pan command %f" % angle,
-                body=lambda: self._pub_pan.publish(msg)
-                )
-
-    def command_nod(self, timeout=5.0):
-        self._pub_nod.publish(Bool(data=True))
-
-        if not timeout == 0:
-            baxter_dataflow.wait_for(
-                test=self.nodding,
-                timeout=timeout,
-                rate=100,
-                timeout_msg="Failed to initiate head nod command",
-                body=lambda: self._pub_nod.publish(Bool(data=True))
-            )
-
-            baxter_dataflow.wait_for(
-                test=lambda: not self.nodding(),
-                timeout=timeout,
-                rate=100,
-                timeout_msg="Failed to complete head nod command",
-                body=lambda: self._pub_nod.publish(Bool(data=False))
-            )
+    def command_nod(self):
+        """Commands Baxter to nod its head."""
+        self._pub_nod.publish(roslibpy.Message({'data': True}))
+        time.sleep(1.0)
