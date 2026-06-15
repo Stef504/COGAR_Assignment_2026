@@ -24,11 +24,11 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+# Copyright (c) 2013-2015, Rethink Robotics
+# All rights reserved.
 
 import errno
-
-import rospy
-
+import rclpy
 import baxter_dataflow
 
 from baxter_core_msgs.msg import (
@@ -41,19 +41,15 @@ class AnalogIO(object):
     """
     Interface class for a simple Analog Input and/or Output on the
     Baxter robot.
-
-    Input
-      - read input state
-    Output
-      - set new output state
-      - read current output state
     """
-    def __init__(self, component_id):
+    def __init__(self, node, component_id):
         """
         Constructor.
 
+        @param node: ROS 2 node reference
         @param component_id: unique id of analog component
         """
+        self._node = node
         self._id = component_id
         self._component_type = 'analog_io'
         self._is_output = False
@@ -63,10 +59,11 @@ class AnalogIO(object):
         type_ns = '/robot/' + self._component_type
         topic_base = type_ns + '/' + self._id
 
-        self._sub_state = rospy.Subscriber(
-            topic_base + '/state',
+        self._sub_state = self._node.create_subscription(
             AnalogIOState,
-            self._on_io_state)
+            topic_base + '/state',
+            self._on_io_state,
+            10)
 
         baxter_dataflow.wait_for(
             lambda: len(self._state.keys()) != 0,
@@ -77,40 +74,22 @@ class AnalogIO(object):
 
         # check if output-capable before creating publisher
         if self._is_output:
-            self._pub_output = rospy.Publisher(
-                type_ns + '/command',
+            self._pub_output = self._node.create_publisher(
                 AnalogOutputCommand,
-                queue_size=10)
+                type_ns + '/command',
+                10)
 
     def _on_io_state(self, msg):
-        """
-        Updates the internally stored state of the Analog Input/Output.
-        """
-        self._is_output = not msg.isInputOnly
+        self._is_output = not msg.is_input_only
         self._state['value'] = msg.value
 
     def state(self):
-        """
-        Return the latest value of the Analog Input/Output.
-        """
         return self._state['value']
 
     def is_output(self):
-        """
-        Accessor to check if IO is capable of output.
-        """
         return self._is_output
 
     def set_output(self, value, timeout=2.0):
-        """
-        Control the state of the Analog Output.
-
-        @type value: uint16
-        @param value: new state of the Output.
-        @type timeout: float
-        @param timeout: Seconds to wait for the io to reflect command.
-                        If 0, just command once and return. [0]
-        """
         if not self._is_output:
             raise IOError(errno.EACCES, "Component is not an output [%s: %s]" %
                 (self._component_type, self._id))

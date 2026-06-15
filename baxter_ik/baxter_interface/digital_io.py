@@ -25,10 +25,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# Copyright (c) 2013-2015, Rethink Robotics
+# All rights reserved.
+
 import errno
-
-import rospy
-
+import rclpy
 import baxter_dataflow
 
 from baxter_core_msgs.msg import (
@@ -41,19 +42,15 @@ class DigitalIO(object):
     """
     Interface class for a simple Digital Input and/or Output on the
     Baxter robot
-
-    Input
-      - read input state
-    Output
-      - turn output On/Off
-      - read current output state
     """
-    def __init__(self, component_id):
+    def __init__(self, node, component_id):
         """
         Constructor.
 
+        @param node: ROS 2 node reference
         @param component_id: unique id of the digital component
         """
+        self._node = node
         self._id = component_id
         self._component_type = 'digital_io'
         self._is_output = False
@@ -64,10 +61,11 @@ class DigitalIO(object):
         type_ns = '/robot/' + self._component_type
         topic_base = type_ns + '/' + self._id
 
-        self._sub_state = rospy.Subscriber(
-            topic_base + '/state',
+        self._sub_state = self._node.create_subscription(
             DigitalIOState,
-            self._on_io_state)
+            topic_base + '/state',
+            self._on_io_state,
+            10)
 
         baxter_dataflow.wait_for(
             lambda: self._state != None,
@@ -76,63 +74,35 @@ class DigitalIO(object):
             % (topic_base,),
         )
 
-        # check if output-capable before creating publisher
         if self._is_output:
-            self._pub_output = rospy.Publisher(
-                type_ns + '/command',
+            self._pub_output = self._node.create_publisher(
                 DigitalOutputCommand,
-                queue_size=10)
+                type_ns + '/command',
+                10)
 
     def _on_io_state(self, msg):
-        """
-        Updates the internally stored state of the Digital Input/Output.
-        """
         new_state = (msg.state == DigitalIOState.PRESSED)
         if self._state is None:
-            self._is_output = not msg.isInputOnly
+            self._is_output = not msg.is_input_only
         old_state = self._state
         self._state = new_state
 
-        # trigger signal if changed
         if old_state is not None and old_state != new_state:
             self.state_changed(new_state)
 
     @property
     def is_output(self):
-        """
-        Accessor to check if IO is capable of output.
-        """
         return self._is_output
 
     @property
     def state(self):
-        """
-        Current state of the Digital Input/Output.
-        """
         return self._state
 
     @state.setter
     def state(self, value):
-        """
-        Control the state of the Digital Output. (is_output must be True)
-
-        @type value: bool
-        @param value: new state to output {True, False}
-        """
         self.set_output(value)
 
     def set_output(self, value, timeout=2.0):
-        """
-        Control the state of the Digital Output.
-
-        Use this function for finer control over the wait_for timeout.
-
-        @type value: bool
-        @param value: new state {True, False} of the Output.
-        @type timeout: float
-        @param timeout: Seconds to wait for the io to reflect command.
-                        If 0, just command once and return. [0]
-        """
         if not self._is_output:
             raise IOError(errno.EACCES, "Component is not an output [%s: %s]" %
                 (self._component_type, self._id))

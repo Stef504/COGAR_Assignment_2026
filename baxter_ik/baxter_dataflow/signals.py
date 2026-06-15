@@ -26,19 +26,37 @@
 # POSSIBILITY OF SUCH DAMAGE.
 # Copyright (c) 2013-2015, Rethink Robotics
 # All rights reserved.
-# [License truncated for brevity...]
 
-JOINT_ANGLE_TOLERANCE = 0.008726646
-HEAD_PAN_ANGLE_TOLERANCE = 0.1396263401
+import inspect
+from weakref import WeakKeyDictionary
+from weakref import WeakSet
 
-## Versioning
-SDK_VERSION = '1.2.0'
-CHECK_VERSION = True
-# Version Compatibility Maps - {current: compatible}
-VERSIONS_SDK2ROBOT = {'1.2.0': ['1.2.0']}
-VERSIONS_SDK2GRIPPER = {'1.2.0':
-                          {
-                           'warn': '2014/5/20 00:00:00',  # Version 1.0.0
-                           'fail': '2013/10/15 00:00:00', # Version 0.6.2
-                          }
-                       }
+
+class Signal(object):
+    def __init__(self):
+        self._functions = WeakSet()
+        self._methods = WeakKeyDictionary()
+
+    def __call__(self, *args, **kargs):
+        for f in self._functions:
+            f(*args, **kargs)
+
+        for obj, functions in self._methods.items():
+            for f in functions:
+                f(obj, *args, **kargs)
+
+    def connect(self, slot):
+        if inspect.ismethod(slot):
+            if not slot.__self__ in self._methods:
+                self._methods[slot.__self__] = set()
+            self._methods[slot.__self__].add(slot.__func__)
+        else:
+            self._functions.add(slot)
+
+    def disconnect(self, slot):
+        if inspect.ismethod(slot):
+            if slot.__self__ in self._methods:
+                self._methods[slot.__self__].remove(slot.__func__)
+        else:
+            if slot in self._functions:
+                self._functions.remove(slot)

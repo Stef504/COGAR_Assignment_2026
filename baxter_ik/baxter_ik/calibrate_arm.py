@@ -27,94 +27,116 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+#!/usr/bin/env python3
+
+# Copyright (c) 2013-2015, Rethink Robotics
+# All rights reserved.
+#
+# [License truncated for brevity...]
 
 import argparse
-import os
 import sys
 
-import rospy
+import rclpy
+from rclpy.node import Node
 
 import baxter_interface
-
 from baxter_interface import CHECK_VERSION
+
 from baxter_maintenance_msgs.msg import (
     CalibrateArmEnable,
 )
 
 
 class CalibrateArm(baxter_interface.RobustController):
-    def __init__(self, limb):
+    def __init__(self, node, limb):
         """
         Wrapper to run the CalibrateArm RobustController.
 
+        @param node: ROS 2 node reference
         @param limb: Limb to run CalibrateArm on [left/right]
         """
-        enable_msg = CalibrateArmEnable(isEnabled=True, uid='sdk')
-
-        disable_msg = CalibrateArmEnable(isEnabled=False, uid='sdk')
+        enable_msg = CalibrateArmEnable(is_enabled=True, uid='sdk')
+        disable_msg = CalibrateArmEnable(is_enabled=False, uid='sdk')
 
         # Initialize RobustController, use 10 minute timeout for the
         # CalibrateArm process
         super(CalibrateArm, self).__init__(
+            node,
             'robustcontroller/%s/CalibrateArm' % (limb,),
             enable_msg,
             disable_msg,
             10 * 60)
 
 
-def gripper_removed(side):
+def gripper_removed(node, side):
     """
     Verify grippers are removed for calibration/tare.
     """
-    gripper = baxter_interface.Gripper(side)
+    gripper = baxter_interface.Gripper(node, side)
     if gripper.type() != 'custom':
-        rospy.logerr("Cannot calibrate with grippers attached."
-                       " Remove grippers before calibration!")
+        node.get_logger().error("Cannot calibrate with grippers attached."
+                                " Remove grippers before calibration!")
         return False
     return True
 
 
-def main():
+def main(args=None):
+    if args is None:
+        args = sys.argv
+
+    # Initialize rclpy first to handle ROS arguments
+    rclpy.init(args=args)
+
     parser = argparse.ArgumentParser()
     required = parser.add_argument_group('required arguments')
     required.add_argument('-l', '--limb', required=True,
                         choices=['left', 'right'],
                         help="Calibrate the specified arm")
-    args = parser.parse_args(rospy.myargv()[1:])
-    arm = args.limb
+    
+    # Parse arguments, ignoring ROS-specific arguments
+    parsed_args, _ = parser.parse_known_args(args[1:])
+    arm = parsed_args.limb
 
     print("Initializing node...")
-    rospy.init_node('rsdk_calibrate_arm_%s' % (arm,))
+    node = rclpy.create_node('rsdk_calibrate_arm_%s' % (arm,))
 
     print("Preparing to calibrate...")
     gripper_warn = ("\nIMPORTANT: Make sure to remove grippers and other"
                     " attachments before running calibrate.\n")
     print(gripper_warn)
-    if not gripper_removed(args.limb):
+    
+    if not gripper_removed(node, arm):
+        node.destroy_node()
+        rclpy.shutdown()
         return 1
 
-    rs = baxter_interface.RobotEnable(CHECK_VERSION)
+    rs = baxter_interface.RobotEnable(node, CHECK_VERSION)
     rs.enable()
-    cat = CalibrateArm(arm)
-    rospy.loginfo("Running calibrate on %s arm" % (arm,))
+    cat = CalibrateArm(node, arm)
+    node.get_logger().info("Running calibrate on %s arm" % (arm,))
 
     error = None
     try:
         cat.run()
-    except Exception, e:
+    except OSError as e:
         error = e.strerror
+    except Exception as e:
+        error = str(e)
     finally:
         try:
             rs.disable()
         except Exception:
             pass
 
-    if error == None:
-        rospy.loginfo("Calibrate arm finished")
+    if error is None:
+        node.get_logger().info("Calibrate arm finished")
     else:
-        rospy.logerr("Calibrate arm failed: %s" % (error,))
+        node.get_logger().error("Calibrate arm failed: %s" % (error,))
 
-    return 0 if error == None else 1
+    node.destroy_node()
+    rclpy.shutdown()
+    return 0 if error is None else 1
 
 if __name__ == '__main__':
     sys.exit(main())
