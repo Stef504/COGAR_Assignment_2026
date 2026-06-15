@@ -100,14 +100,18 @@ class Gripper(object):
         baxter_dataflow.wait_for(
                           lambda: not self._state is None,
                           timeout=5.0,
-                          timeout_msg=("Failed to get state from %s" % (ns + 'state',))
+                          timeout_msg=("Failed to get state from %s" % (ns + 'state',)),
+                          node=self._node
                           )
-
+        
         baxter_dataflow.wait_for(
                           lambda: not self.type() is None,
                           timeout=5.0,
-                          timeout_msg=("Failed to get properties from %s" % (ns + 'properties',))
+                          timeout_msg=("Failed to get properties from %s" % (ns + 'properties',)),
+                          node=self._node
                           )
+        
+    
 
         if versioned and self.type() == 'electric':
             if not self.version_check():

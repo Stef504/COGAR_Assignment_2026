@@ -58,8 +58,9 @@ class RobotEnable(object):
 
         baxter_dataflow.wait_for(
             lambda: not self._state is None,
-            timeout=2.0,
+            timeout=5.0,
             timeout_msg=("Failed to get robot state on %s" % (state_topic,)),
+            node=self._node
         )
 
     def _state_callback(self, msg):
