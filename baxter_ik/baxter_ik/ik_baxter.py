@@ -92,8 +92,8 @@ class InteractiveSwiper:
 
     def run_loop(self, start_pos, start_ori, reps, distance, orientation ,delay):
         """Executes the automatic swiping repetitions."""
-        base_x = start_pos['x']
-        end_x = base_x + distance
+        base_y = start_pos['y']
+        end_y = base_y + distance
 
         print("\n" + "="*40)
         print("         RUNNING EXPERIMENT")
@@ -103,23 +103,25 @@ class InteractiveSwiper:
         for i in range(1, reps + 1):
             print(f"\n--- Cycle {i}/{reps} ---")
             
-            print(f"  -> Moving to Start Position (X: {base_x:.4f})")
+            print(f"  -> Moving to Start Position (Y: {base_y:.4f})")
             self.status_pub.publish(roslibpy.Message({'data': f"START_{orientation}_REP_{i}"}))
-            if not self.execute_ik_movement(base_x, start_pos['y'], start_pos['z'], start_ori):
+            if not self.execute_ik_movement(start_pos['x'],base_y, start_pos['z'], start_ori):
                 print("Aborting experiment loop due to IK failure.")
                 break
             time.sleep(delay)
 
-            print(f"  -> Swiping Forward to End Position (X: {end_x:.4f})")
-            if not self.execute_ik_movement(end_x, start_pos['y'], start_pos['z'], start_ori):
+            print(f"  -> Swiping Forward to End Position (Y: {end_y:.4f})")
+            if not self.execute_ik_movement(start_pos['x'],end_y, start_pos['z'], start_ori):
                 print("Aborting experiment loop due to IK failure.")
                 break
             time.sleep(delay)
             self.status_pub.publish(roslibpy.Message({'data': f"STOP"})) 
         
-
+        time.sleep(delay)
         self.status_pub.publish(roslibpy.Message({'data': f"EXPERIMENT_COMPLETE"}))
         print("\nExperiment execution complete.")
+
+        time.sleep(1.0)
 
     def close(self):
         self.joint_pub.unadvertise()
@@ -168,7 +170,7 @@ def main():
     # 4. Get Experimental Control Constraints
     print("\n[ Step 3: Configure Swipe Parameters ]")
     reps = int(get_float_input("  Enter number of swipe repetitions (e.g., 10): "))
-    distance = get_float_input("  Enter linear swipe distance along X axis (meters, e.g., 0.10): ")
+    distance = get_float_input("  Enter linear swipe distance along Y axis (meters, e.g., 0.10): ")
     delay = get_float_input("  Enter stabilization delay between actions (seconds, e.g., 2.0): ")
 
     # Initialize and run the system
