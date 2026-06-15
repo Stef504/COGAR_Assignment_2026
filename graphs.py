@@ -34,7 +34,7 @@ def open_interactive_graph():
     ax1.grid(True, linestyle='--', alpha=0.5)
     
     ax1_right = ax1.twinx()
-    ax1_right.plot(time_arr, np.array(shear_hist), color='red', linewidth=1.5, linestyle='--', label="Integrated Shear")
+    ax1_right.plot(time_arr, np.array(shear_arr), color='red', linewidth=1.5, linestyle='--', label="Integrated Shear")
     ax1_right.set_ylabel("Shear Displacement (mm)", color='red', fontsize=12)
     
     # Combine legends smoothly
@@ -43,7 +43,7 @@ def open_interactive_graph():
     ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
     
     # === Subplot 2: Isolated Shear Force Profile ===
-    ax2.plot(time_arr, np.array(shear_hist), color='red', linewidth=2)
+    ax2.plot(time_arr, np.array(shear_arr), color='red', linewidth=2)
     ax2.set_title("Total Integrated Shear Displacement over Time", fontsize=14)
     ax2.set_ylabel("Shear Volumetric Integral (mm)", color='red', fontsize=12)
     ax2.grid(True, linestyle='--', alpha=0.5)
