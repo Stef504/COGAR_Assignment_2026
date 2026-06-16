@@ -155,18 +155,21 @@ class DaimonROSLogger:
             contact_area_mm2 = np.sum(contact_mask) * PIXEL_AREA
             
             masked_shear = shear_map * contact_mask[:, :, np.newaxis]
+            masked_depth = depth_smooth * contact_mask
             total_shear_force = np.sqrt(np.sum(masked_shear[:, :, 0])**2 + np.sum(masked_shear[:, :, 1])**2)
-            
+            cumulative_depth = np.sum(masked_depth)
+
             # Record Global Initial Contact Depth
-            max_depth = np.max(depth_map)
-            if self.contact_start_depth == 0.0 and max_depth > DEPTH_THRESHOLD:
-                self.contact_start_depth = max_depth
+            # Replaces the max_depth logic with the cumulative sum threshold
+            if self.contact_start_depth == 0.0 and cumulative_depth > 0.5:
+                self.contact_start_depth = cumulative_depth
+                print(f"Contact triggered at {time.time() - self.experiment_start_time:.2f}s")
 
             # --- ALWAYS RECORD TO GLOBAL MEMORY ---
             # This captures the data continuously so the pauses show up as flatlines on the graph
             global_curr_time = time.time() - self.experiment_start_time
             self.global_time.append(global_curr_time)
-            self.global_depth.append(max_depth)
+            self.global_depth.append(cumulative_depth)
             self.global_shear.append(total_shear_force)
             self.global_area.append(contact_area_mm2)
 
@@ -174,7 +177,7 @@ class DaimonROSLogger:
             if self.is_recording:
                 local_curr_time = time.time() - self.rep_start_time
                 self.local_time.append(local_curr_time)
-                self.local_depth.append(max_depth)
+                self.local_depth.append(cumulative_depth)
                 self.local_shear.append(total_shear_force)
                 cv2.putText(black_img, f"REC: REP {self.current_rep} {self.current_direction.upper()}", 
                             (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)

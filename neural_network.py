@@ -85,20 +85,38 @@ class DaimonDataset(Dataset):
 if __name__ == "__main__":
     # --- Configuration ---
     DATASET_FOLDER = "DataSets" # Ensure this matches your actual folder name
-    BATCH_SIZE = 16 # How many files to process at once before updating weights
+    BATCH_SIZE = 16 
     EPOCHS = 50
-    NUM_CLASSES = 4  # Update to include Metal
+    NUM_CLASSES = 4  # Includes Glass, Plastic, Wood, Metal
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training on device: {device}")
     
-    # 1. Initialize the Dataset and DataLoader
+    # 1. Initialize the Dataset
     if not os.path.exists(DATASET_FOLDER):
         print(f"ERROR: Cannot find folder '{DATASET_FOLDER}'. Please create it and add your data.")
         exit()
         
     dataset = DaimonDataset(root_dir=DATASET_FOLDER)
-    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
+    
+    # ---------------------------------------------------------
+    # NEW: THE TRAIN / TEST SPLIT
+    # ---------------------------------------------------------
+    total_samples = len(dataset)
+    
+    # Calculate sizes (e.g., 50 train / 10 test per 60 items is ~83% / 17%)
+    # This math automatically scales even if you collect more than 60 reps!
+    train_size = int(total_samples * (50.0 / 60.0)) 
+    test_size = total_samples - train_size
+    
+    print(f"\nSplitting Data -> Training on {train_size} files, Testing on {test_size} files.")
+    
+    # Randomly shuffle and split the dataset
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+    
+    # Create TWO DataLoaders now (one for studying, one for the final exam)
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
     # 2. Initialize the Model
     model = TactileTransformerClassifier(num_classes=NUM_CLASSES).to(device)
@@ -107,39 +125,55 @@ if __name__ == "__main__":
     
     # 3. The Training Loop
     print("\nStarting Transformer Training...")
-    model.train()
     
     for epoch in range(1, EPOCHS + 1):
-        running_loss = 0.0
-        correct_predictions = 0
-        total_samples = 0
+        # --- A. TRAINING PHASE (Studying) ---
+        model.train() # Tell the model it is allowed to learn and change weights
+        running_train_loss = 0.0
+        correct_train = 0
+        total_train = 0
         
-        # Loop through batches of data from your folders
-        for batch_x, batch_y in dataloader:
-            # Move data to GPU if available
+        for batch_x, batch_y in train_loader:
             batch_x, batch_y = batch_x.to(device), batch_y.to(device)
             
-            # Reset gradients
             optimizer.zero_grad()
-            
-            # Forward pass (Guess)
             predictions = model(batch_x)
             loss = criterion(predictions, batch_y)
             
-            # Backward pass (Learn)
             loss.backward()
             optimizer.step()
             
-            # Tracking metrics
-            running_loss += loss.item()
+            running_train_loss += loss.item()
             _, predicted_classes = torch.max(predictions, 1)
-            correct_predictions += (predicted_classes == batch_y).sum().item()
-            total_samples += batch_y.size(0)
+            correct_train += (predicted_classes == batch_y).sum().item()
+            total_train += batch_y.size(0)
             
-        # Print Epoch Summary
-        epoch_loss = running_loss / len(dataloader)
-        epoch_acc = (correct_predictions / total_samples) * 100
-        print(f"Epoch [{epoch}/{EPOCHS}] -> Loss: {epoch_loss:.4f} | Accuracy: {epoch_acc:.1f}%")
+        epoch_train_loss = running_train_loss / len(train_loader)
+        epoch_train_acc = (correct_train / total_train) * 100
+
+        # --- B. TESTING PHASE (The Exam) ---
+        model.eval()  # Freeze weights, turn off Dropout layers
+        running_test_loss = 0.0
+        correct_test = 0
+        total_test = 0
+        
+        with torch.no_grad(): # Disable memory-heavy gradient tracking during tests
+            for batch_x, batch_y in test_loader:
+                batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+                
+                predictions = model(batch_x)
+                loss = criterion(predictions, batch_y)
+                
+                running_test_loss += loss.item()
+                _, predicted_classes = torch.max(predictions, 1)
+                correct_test += (predicted_classes == batch_y).sum().item()
+                total_test += batch_y.size(0)
+                
+        epoch_test_loss = running_test_loss / len(test_loader)
+        epoch_test_acc = (correct_test / total_test) * 100
+            
+        # --- C. PRINT EPOCH RESULTS ---
+        print(f"Epoch [{epoch:02d}/{EPOCHS}] | Train Acc: {epoch_train_acc:5.1f}% | Test Acc: {epoch_test_acc:5.1f}% (Test Loss: {epoch_test_loss:.4f})")
 
     # --- 4. SAVING THE MODEL'S MEMORY ---
     print("\nTraining Complete.")
