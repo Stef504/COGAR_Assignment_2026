@@ -45,7 +45,7 @@ def open_interactive_graph():
     # === Subplot 2: Isolated Shear Force Profile ===
     ax2.plot(time_arr, np.array(shear_arr), color='red', linewidth=2)
     ax2.set_title("Total Integrated Shear Displacement over Time", fontsize=14)
-    ax2.set_ylabel("Shear Volumetric Integral (mm)", color='red', fontsize=12)
+    ax2.set_ylabel("Shear (mm)", color='red', fontsize=12)
     ax2.grid(True, linestyle='--', alpha=0.5)
     
     #Velocity Profile (Dip Detection)
@@ -60,7 +60,7 @@ def open_interactive_graph():
     ax4.plot(time_arr[1:], normal_velocity, color='crimson', linewidth=1.5)
     ax4.set_title("Depth Velocity - Changes in depth map", fontsize=13)
     ax4.set_xlabel("Time (s)", fontsize=11)
-    ax4.set_ylabel("Velocity (mm/s^2)", color='crimson', fontsize=11)
+    ax4.set_ylabel("Velocity (mm/s)", color='crimson', fontsize=11)
     ax4.grid(True, linestyle='--', alpha=0.5)
 
     plt.suptitle(f"Interactive Analysis: {file_path.split('/')[-1]}", fontsize=14)

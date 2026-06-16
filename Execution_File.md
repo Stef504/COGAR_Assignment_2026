@@ -28,7 +28,7 @@ ros2 run baxter_ik ik_baxter -l {right.left}
 - For accurate representation of the active contact zones, the depth and shear maps/graphs were isolated to focus only on the active area so as to avoid any readings of noise.
 - Bridge of data from the daimon sensor:
 - Raw Image-- (240,320)
-- getDeformation2D-- (240, 320, 2) representing the deformation in the tangential direction (x, y)
+- getDeformation2D-- (240, 320, 2) represents two-dimensional deformation of each pixel in mm.
 - getDepth-- (240, 320) represents the normal deformation, elastic deformation of the elastomer 
 - getShear-- (240,320,2) tangential deformation information of each pixel in mm (parallel to contact surface)
 - The shear and deformation maps are taken from the raw image and depth maps. The analysis of these graphs and their time derivatives allows us to distinguish between each material, which mainly focuses on the squishableness and roughness of the material. 
