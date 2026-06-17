@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dmrobotics import Sensor, put_arrows_on_image
 from baxter_ik.utilities import preprocess_experiment_run
-from main import ORIENTATION
 import roslibpy
 
 
@@ -27,6 +26,7 @@ class DaimonROSLogger:
         print(" DAIMON SENSOR DATA COLLECTION INITIALIZED")
         print("="*40)
         self.material_name = input("Enter Material Name (e.g., Plastic, Wood, Glass, Metal): ").strip()
+        self.test = input("Enter which test this is (e.g Test1, TestPlasticV2): ").strip()
         self.orientation = input("Enter Orientation (e.g., Up, Down,Diagonal_Right,Diagonal_Left,Left,Right): ").strip()
         print(f"\n[TARGET DIRECTORY] -> Dataset/{self.material_name}/{self.orientation}/")
         print("="*40 + "\n")
@@ -114,7 +114,7 @@ class DaimonROSLogger:
             os.makedirs(folder_path)
             
         fixed_sequence = preprocess_experiment_run(self.local_time, self.local_depth, self.local_shear)
-        filename = os.path.join(folder_path, f"{self.material_name}_{self.orientation}_rep{self.current_rep}_{self.current_direction}.npy")
+        filename = os.path.join(folder_path, f"{self.material_name}_{self.test}_{self.orientation}_rep{self.current_rep}_{self.current_direction}.npy")
         
         np.save(filename, fixed_sequence)
         print(f"  [SAVED NN MATRIX] -> {filename}")

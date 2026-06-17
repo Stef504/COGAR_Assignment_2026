@@ -40,13 +40,14 @@ ros2 run baxter_ik ik_baxter -l {right.left}
 ros2 run baxter_ik daimon_sensor
 ```
 
-# Neural Network:
+# Neural Network and Classifier:
 - Uses the time series transformer neural networking technique to learn from the variables (shear, depth, shear velocity, and depth velocity)
 - It assigns weights to the data and receives penalties (for its incorrect assumptions based (once compared with the actual tensor)).
 - This is executed after taking a certain amount of trails for each material in different directions.
-
-# Material Classification:
-- This takes everything that the neural network learnt and takes the information from the Daimon sensor to provide a probability score of tested material live.
+- A confusion matrix and classification report is produced. The confusion matrix maps the true labels against the predicted labels, this way we can anaylse which catergories are being confsued with other catergories, this would be a result of similar patterns
+- Classification report leads to the stastical anaylses . the statics are groups by precision, recall and F1-score. Precision: how well or poorly the model was we naming a material out of all the materials. High precision resulst in a low false-positive. Recall : Out of all the samples of a specific material present in the test , how succeful was the model per material. High recall indicates a low false-negative rate. F1-Score: 2* (Precision * Recall)/(precision+recall). balance metrix representing performance for that specific class. So how trustworthy is the systen and how thorough
+- System is based on multi-feature Vision Based Tactile System 
+- 
 
 # Executing Baxter:
 - To execute Baxter, the following commands can be run: 
@@ -74,5 +75,9 @@ lmetal_pos:
 [-0.2784,0.5193,-0.8130,0.9906,0.7271,-1.1068, 2.1334]
 
 new lmetal_pos
-[0.0913,0.7647,-0.9407,1.2502,1.1037,-1.1018,2.3926]
+[-0.0245,0.1956,-0.2075,1.3081,0.8122,-1.3461,1.6713]
 
+
+position from white section till lowest black line is 0.6cm + 0.02cm=0.62cm  (0.9mm)
+3.6cm
+0.2cm + 0.025cm  (5*0.05)
