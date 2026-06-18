@@ -60,6 +60,7 @@ ros2 launch baxter_rosbridge_adapter baxter_visualization.launch.py
 This allows us to control the joint commands:
 ```bash
 ros2 run baxter_rosbridge_adapter baxter_cli
+ros2 run baxter_rosbridge_adapter calibrate_arm -l {left/right}
 ```
 To view what Baxter is cable of and what information we can obtain it was useful to view the `baxter_common_ros2` package. 
 
@@ -81,3 +82,4 @@ new lmetal_pos
 position from white section till lowest black line is 0.6cm + 0.02cm=0.62cm  (0.9mm)
 3.6cm
 0.2cm + 0.025cm  (5*0.05)
+2.8
