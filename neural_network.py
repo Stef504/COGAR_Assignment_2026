@@ -37,7 +37,7 @@ class TactileTransformerClassifier(nn.Module):
         output = self.fc_out(x)
         return output
 
-# --- 2. THE CUSTOM DATASET LOADER (Reading the Folders) ---
+# --- 2. THE CUSTOM DATASET LOADER (Reading & Processing On-The-Fly) ---
 class DaimonDataset(Dataset):
     def __init__(self, root_dir):
         """
@@ -46,22 +46,23 @@ class DaimonDataset(Dataset):
         self.file_paths = []
         self.labels = []
         
-        # 1. Define the dictionary mapping your NEW folder names to integer labels
         self.class_map = {
             "Rubber": 0,
             "Plastic": 1,
             "Metal": 2
         }
         
-        # 2. Search through the folders and collect the paths
-        for material_name, label_idx in self.class_map.items():
-            # NEW FIX: The '**' tells it to search infinitely deep into subfolders!
-            search_path = os.path.join(root_dir, material_name, "**", "*.npy")
-            found_files = glob.glob(search_path, recursive=True)
-            
-            for file_path in found_files:
-                self.file_paths.append(file_path)
-                self.labels.append(label_idx)
+        print("Scanning directories for .npy files...")
+        search_path = os.path.join(root_dir, "**", "*.npy")
+        all_found_files = glob.glob(search_path, recursive=True)
+        
+        for file_path in all_found_files:
+            normalized_path = file_path.replace('\\', '/')
+            for material_name, label_idx in self.class_map.items():
+                if f"/{material_name}/" in normalized_path or f"{material_name}_" in os.path.basename(normalized_path):
+                    self.file_paths.append(file_path)
+                    self.labels.append(label_idx)
+                    break 
                 
         print(f"Dataset Loaded: Found {len(self.file_paths)} total trial files.")
 
@@ -69,12 +70,41 @@ class DaimonDataset(Dataset):
         return len(self.file_paths)
 
     def __getitem__(self, idx):
+        # 1. Load the raw physics data from the hard drive (Shape: 500x3 -> Time, Depth, Shear)
         file_path = self.file_paths[idx]
-        data_matrix = np.load(file_path)
-        label = self.labels[idx]
+        raw_matrix = np.load(file_path) 
         
-        tensor_x = torch.tensor(data_matrix, dtype=torch.float32) 
+        time_arr = raw_matrix[:, 0]
+        depth_arr = raw_matrix[:, 1]
+        shear_arr = raw_matrix[:, 2]
+        
+        # 2. FEATURE ENGINEERING: Calculate Velocities on the fly!
+        dt = np.diff(time_arr)
+        dt = np.clip(dt, 1e-4, None) # Prevent division by zero if timestamps are identical
+        
+        # Calculate velocity and pad the first element so it stays exactly 500 steps long
+        depth_vel = np.pad(np.diff(depth_arr) / dt, (1, 0), mode='edge')
+        shear_vel = np.pad(np.diff(shear_arr) / dt, (1, 0), mode='edge')
+        
+        # 3. Build the new 4-Feature Matrix
+        # We drop 'Time' because the Transformer's positional embedding already handles sequence order
+        features_matrix = np.column_stack((depth_arr, shear_arr, depth_vel, shear_vel))
+        
+        # 4. NORMALIZATION (Z-Score Standardization)
+        # This fixes the "Exploding Gradient" (NaN) error by shrinking the massive numbers!
+        for i in range(features_matrix.shape[1]):
+            col_mean = np.mean(features_matrix[:, i])
+            col_std = np.std(features_matrix[:, i])
+            if col_std > 1e-6: 
+                features_matrix[:, i] = (features_matrix[:, i] - col_mean) / col_std
+            else:
+                features_matrix[:, i] = features_matrix[:, i] - col_mean
+        
+        # 5. Convert to PyTorch Tensors
+        label = self.labels[idx]
+        tensor_x = torch.tensor(features_matrix, dtype=torch.float32) 
         tensor_y = torch.tensor(label, dtype=torch.long)          
+        
         return tensor_x, tensor_y
 
 # --- 3. TRAINING LOOP & MEMORY SAVING ---
@@ -102,7 +132,8 @@ if __name__ == "__main__":
     # --- Configuration ---
     BATCH_SIZE = 16 
     EPOCHS = 50
-    NUM_CLASSES = 3  # Updated for Rubber, Plastic, Metal
+    NUM_CLASSES = 3  
+    NUM_FEATURES = 4 # [Depth, Shear, Depth_Velocity, Shear_Velocity]
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training on device: {device}")
@@ -113,7 +144,7 @@ if __name__ == "__main__":
     total_samples = len(dataset)
     if total_samples == 0:
         print(f"\n[ERROR] Found 0 .npy files inside {DATASET_FOLDER}.")
-        print("Ensure your folders are named exactly: 'Rubber', 'Plastic', 'Metal'.")
+        print("Ensure your files contain 'Rubber', 'Plastic', or 'Metal' in their names or parent folders.")
         exit()
     
     # --- THE TRAIN / TEST SPLIT ---
@@ -129,7 +160,7 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
     # 2. Initialize the Model
-    model = TactileTransformerClassifier(num_classes=NUM_CLASSES).to(device)
+    model = TactileTransformerClassifier(num_features=NUM_FEATURES, num_classes=NUM_CLASSES).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     
@@ -194,7 +225,7 @@ if __name__ == "__main__":
         if epoch % 10 == 0 or epoch == EPOCHS:
             print("\n" + "-"*50)
             print(f"DETAILED MATERIAL BREAKDOWN (Epoch {epoch}):")
-            target_names = ["Rubber", "Plastic", "Metal"] # Updated!
+            target_names = ["Rubber", "Plastic", "Metal"]
             
             report = classification_report(all_true_labels, all_model_guesses, target_names=target_names, zero_division=0)
             print(report)
@@ -217,7 +248,7 @@ if __name__ == "__main__":
     print(f"[SUCCESS] Model intelligence saved permanently to: {save_path}")
 
     # --- 5. PRINT REPORTS AND GRAPHICS ---
-    target_names = ["Rubber", "Plastic", "Metal"] # Updated!
+    target_names = ["Rubber", "Plastic", "Metal"] 
     print("\nFINAL DETAILED MATERIAL BREAKDOWN:")
     report = classification_report(all_true_labels, all_model_guesses, target_names=target_names, zero_division=0)
     print(report)
