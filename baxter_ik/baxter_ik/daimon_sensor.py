@@ -105,7 +105,7 @@ class DaimonROSLogger:
         SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
         
         # 2. Goes up ONE level to: .../baxter_ros2_ws/src/baxter_ik
-        PACKAGE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+        PACKAGE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../../../../../../"))
         
         # 3. Safely build the Dataset path
         folder_path = os.path.join(PACKAGE_ROOT, "Dataset", self.material_name, self.orientation)
@@ -126,7 +126,7 @@ class DaimonROSLogger:
         SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
         
         # 2. Goes up ONE level to: .../baxter_ros2_ws/src/baxter_ik
-        PACKAGE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+        PACKAGE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../../../../../../"))
         
         # 3. Safely build the plots path
         PLOT_DIR = os.path.join(PACKAGE_ROOT, "plots")
