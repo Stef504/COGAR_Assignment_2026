@@ -1,170 +1,151 @@
-usr/lib/python3/dist-packages/scipy/__init__.py:146: UserWarning: A NumPy version >=1.17.3 and <1.25.0 is required for this version of SciPy (detected version 1.26.0
-  warnings.warn(f"A NumPy version >={np_minversion} and <{np_maxversion}"
-========================================
-  TACTILE TRANSFORMER TRAINING MODULE   
-========================================
-Please select your root Dataset folder from the popup window...
-
-[SYSTEM] Loading data from: /home/theengineroom1/Documents/daimon_ws/C1_group/COGAR_Assignment_2026/Dataset
 Training on device: cuda
-Dataset Loaded: Found 720 total trial files.
-[DATA] Total Files Found: 720
+Scanning directories for .npy files...
+Dataset Loaded: Found 1133 total trial files.
+[DATA] Total Files Found: 1133
 
-Splitting Data -> Training on 600 files, Testing on 120 files.
+Splitting Data -> Training on 944 files, Testing on 189 files.
 
 Starting Transformer Training...
-Epoch [01/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [02/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [03/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [04/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [05/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [06/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [07/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [08/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [09/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [10/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
+Epoch [01/50] | Train Acc:  45.2% | Test Acc:  62.4% (Test Loss: 0.8453)
+Epoch [02/50] | Train Acc:  69.7% | Test Acc:  75.7% (Test Loss: 0.6219)
+Epoch [03/50] | Train Acc:  76.4% | Test Acc:  83.6% (Test Loss: 0.4960)
+Epoch [04/50] | Train Acc:  81.9% | Test Acc:  84.1% (Test Loss: 0.4187)
+Epoch [05/50] | Train Acc:  86.0% | Test Acc:  82.5% (Test Loss: 0.3892)
+Epoch [06/50] | Train Acc:  86.3% | Test Acc:  85.2% (Test Loss: 0.3402)
+Epoch [07/50] | Train Acc:  88.3% | Test Acc:  85.2% (Test Loss: 0.3373)
+Epoch [08/50] | Train Acc:  86.0% | Test Acc:  84.7% (Test Loss: 0.3769)
+Epoch [09/50] | Train Acc:  88.2% | Test Acc:  89.4% (Test Loss: 0.2796)
+Epoch [10/50] | Train Acc:  89.7% | Test Acc:  87.3% (Test Loss: 0.2782)
 
 --------------------------------------------------
 DETAILED MATERIAL BREAKDOWN (Epoch 10):
               precision    recall  f1-score   support
 
-      Rubber       0.36      1.00      0.53        43
-     Plastic       0.00      0.00      0.00        43
-       Metal       0.00      0.00      0.00        34
+      Rubber       1.00      0.97      0.99        36
+     Plastic       0.76      0.95      0.85        66
+       Metal       0.94      0.77      0.85        87
 
-    accuracy                           0.36       120
-   macro avg       0.12      0.33      0.18       120
-weighted avg       0.13      0.36      0.19       120
+    accuracy                           0.87       189
+   macro avg       0.90      0.90      0.89       189
+weighted avg       0.89      0.87      0.87       189
 
 --------------------------------------------------
 
-Epoch [11/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [12/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [13/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [14/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [15/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [16/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [17/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [18/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [19/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [20/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
+Epoch [11/50] | Train Acc:  90.5% | Test Acc:  85.2% (Test Loss: 0.3427)
+Epoch [12/50] | Train Acc:  89.7% | Test Acc:  87.8% (Test Loss: 0.2683)
+Epoch [13/50] | Train Acc:  90.4% | Test Acc:  84.1% (Test Loss: 0.3365)
+Epoch [14/50] | Train Acc:  91.9% | Test Acc:  88.9% (Test Loss: 0.2250)
+Epoch [15/50] | Train Acc:  91.7% | Test Acc:  89.4% (Test Loss: 0.2218)
+Epoch [16/50] | Train Acc:  92.9% | Test Acc:  89.9% (Test Loss: 0.2011)
+Epoch [17/50] | Train Acc:  91.6% | Test Acc:  89.4% (Test Loss: 0.2173)
+Epoch [18/50] | Train Acc:  94.0% | Test Acc:  87.8% (Test Loss: 0.2500)
+Epoch [19/50] | Train Acc:  93.5% | Test Acc:  88.4% (Test Loss: 0.2230)
+Epoch [20/50] | Train Acc:  92.6% | Test Acc:  88.9% (Test Loss: 0.1932)
 
 --------------------------------------------------
 DETAILED MATERIAL BREAKDOWN (Epoch 20):
               precision    recall  f1-score   support
 
-      Rubber       0.36      1.00      0.53        43
-     Plastic       0.00      0.00      0.00        43
-       Metal       0.00      0.00      0.00        34
+      Rubber       1.00      0.97      0.99        36
+     Plastic       0.76      1.00      0.86        66
+       Metal       1.00      0.77      0.87        87
 
-    accuracy                           0.36       120
-   macro avg       0.12      0.33      0.18       120
-weighted avg       0.13      0.36      0.19       120
+    accuracy                           0.89       189
+   macro avg       0.92      0.91      0.91       189
+weighted avg       0.92      0.89      0.89       189
 
 --------------------------------------------------
 
-Epoch [21/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [22/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [23/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [24/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [25/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [26/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [27/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [28/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [29/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [30/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
+Epoch [21/50] | Train Acc:  91.2% | Test Acc:  88.9% (Test Loss: 0.2400)
+Epoch [22/50] | Train Acc:  91.7% | Test Acc:  89.4% (Test Loss: 0.2300)
+Epoch [23/50] | Train Acc:  93.5% | Test Acc:  88.9% (Test Loss: 0.2622)
+Epoch [24/50] | Train Acc:  93.2% | Test Acc:  89.4% (Test Loss: 0.1754)
+Epoch [25/50] | Train Acc:  93.8% | Test Acc:  87.3% (Test Loss: 0.2484)
+Epoch [26/50] | Train Acc:  93.1% | Test Acc:  90.5% (Test Loss: 0.2367)
+Epoch [27/50] | Train Acc:  91.5% | Test Acc:  88.9% (Test Loss: 0.2091)
+Epoch [28/50] | Train Acc:  91.2% | Test Acc:  87.8% (Test Loss: 0.1901)
+Epoch [29/50] | Train Acc:  94.5% | Test Acc:  87.3% (Test Loss: 0.2372)
+Epoch [30/50] | Train Acc:  93.1% | Test Acc:  87.8% (Test Loss: 0.2558)
 
 --------------------------------------------------
 DETAILED MATERIAL BREAKDOWN (Epoch 30):
               precision    recall  f1-score   support
 
-      Rubber       0.36      1.00      0.53        43
-     Plastic       0.00      0.00      0.00        43
-       Metal       0.00      0.00      0.00        34
+      Rubber       0.90      1.00      0.95        36
+     Plastic       0.78      0.92      0.85        66
+       Metal       0.97      0.79      0.87        87
 
-    accuracy                           0.36       120
-   macro avg       0.12      0.33      0.18       120
-weighted avg       0.13      0.36      0.19       120
+    accuracy                           0.88       189
+   macro avg       0.88      0.91      0.89       189
+weighted avg       0.89      0.88      0.88       189
 
 --------------------------------------------------
 
-Epoch [31/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [32/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [33/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [34/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [35/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [36/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [37/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [38/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [39/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [40/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
+Epoch [31/50] | Train Acc:  94.2% | Test Acc:  88.9% (Test Loss: 0.2770)
+Epoch [32/50] | Train Acc:  92.8% | Test Acc:  89.4% (Test Loss: 0.2372)
+Epoch [33/50] | Train Acc:  93.9% | Test Acc:  87.8% (Test Loss: 0.2302)
+Epoch [34/50] | Train Acc:  94.5% | Test Acc:  90.5% (Test Loss: 0.1968)
+Epoch [35/50] | Train Acc:  94.9% | Test Acc:  89.4% (Test Loss: 0.1879)
+Epoch [36/50] | Train Acc:  95.3% | Test Acc:  91.0% (Test Loss: 0.1926)
+Epoch [37/50] | Train Acc:  95.3% | Test Acc:  89.9% (Test Loss: 0.2283)
+Epoch [38/50] | Train Acc:  95.2% | Test Acc:  89.9% (Test Loss: 0.2275)
+Epoch [39/50] | Train Acc:  92.8% | Test Acc:  85.7% (Test Loss: 0.2875)
+Epoch [40/50] | Train Acc:  92.2% | Test Acc:  89.4% (Test Loss: 0.2113)
 
 --------------------------------------------------
 DETAILED MATERIAL BREAKDOWN (Epoch 40):
               precision    recall  f1-score   support
 
-      Rubber       0.36      1.00      0.53        43
-     Plastic       0.00      0.00      0.00        43
-       Metal       0.00      0.00      0.00        34
+      Rubber       0.97      0.94      0.96        36
+     Plastic       0.79      0.97      0.87        66
+       Metal       0.97      0.82      0.89        87
 
-    accuracy                           0.36       120
-   macro avg       0.12      0.33      0.18       120
-weighted avg       0.13      0.36      0.19       120
+    accuracy                           0.89       189
+   macro avg       0.91      0.91      0.91       189
+weighted avg       0.91      0.89      0.90       189
 
 --------------------------------------------------
 
-Epoch [41/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [42/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [43/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [44/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [45/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [46/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [47/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [48/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [49/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
-Epoch [50/50] | Train Acc:  32.8% | Test Acc:  35.8% (Test Loss: nan)
+Epoch [41/50] | Train Acc:  94.0% | Test Acc:  89.9% (Test Loss: 0.2560)
+Epoch [42/50] | Train Acc:  94.2% | Test Acc:  89.4% (Test Loss: 0.2378)
+Epoch [43/50] | Train Acc:  94.2% | Test Acc:  86.8% (Test Loss: 0.3123)
+Epoch [44/50] | Train Acc:  94.4% | Test Acc:  91.5% (Test Loss: 0.2361)
+Epoch [45/50] | Train Acc:  94.3% | Test Acc:  89.4% (Test Loss: 0.1961)
+Epoch [46/50] | Train Acc:  94.2% | Test Acc:  89.4% (Test Loss: 0.2661)
+Epoch [47/50] | Train Acc:  91.9% | Test Acc:  88.4% (Test Loss: 0.2192)
+Epoch [48/50] | Train Acc:  93.6% | Test Acc:  88.9% (Test Loss: 0.2126)
+Epoch [49/50] | Train Acc:  93.4% | Test Acc:  88.9% (Test Loss: 0.1978)
+Epoch [50/50] | Train Acc:  95.0% | Test Acc:  90.5% (Test Loss: 0.1875)
 
 --------------------------------------------------
 DETAILED MATERIAL BREAKDOWN (Epoch 50):
               precision    recall  f1-score   support
 
-      Rubber       0.36      1.00      0.53        43
-     Plastic       0.00      0.00      0.00        43
-       Metal       0.00      0.00      0.00        34
+      Rubber       0.95      1.00      0.97        36
+     Plastic       0.82      0.95      0.88        66
+       Metal       0.97      0.83      0.89        87
 
-    accuracy                           0.36       120
-   macro avg       0.12      0.33      0.18       120
-weighted avg       0.13      0.36      0.19       120
+    accuracy                           0.90       189
+   macro avg       0.91      0.93      0.92       189
+weighted avg       0.91      0.90      0.90       189
 
 --------------------------------------------------
 
 
 Training Complete.
-[SUCCESS] Model intelligence saved permanently to: /home/theengineroom1/Documents/daimon_ws/C1_group/COGAR_Assignment_2026/Saved_Models/daimon_transformer_20260618_1801.pth
+[SUCCESS] Model intelligence saved permanently to: /home/theengineroom1/Documents/daimon_ws/C1_group/COGAR_Assignment_2026/Saved_Models/daimon_transformer_20260618_1828.pth
 
 FINAL DETAILED MATERIAL BREAKDOWN:
               precision    recall  f1-score   support
 
-      Rubber       0.36      1.00      0.53        43
-     Plastic       0.00      0.00      0.00        43
-       Metal       0.00      0.00      0.00        34
+      Rubber       0.95      1.00      0.97        36
+     Plastic       0.82      0.95      0.88        66
+       Metal       0.97      0.83      0.89        87
 
-    accuracy                           0.36       120
-   macro avg       0.12      0.33      0.18       120
-weighted avg       0.13      0.36      0.19       120
+    accuracy                           0.90       189
+   macro avg       0.91      0.93      0.92       189
+weighted avg       0.91      0.90      0.90       189
 
 
 Generating final Confusion Matrix graphic...
-[SUCCESS] Publication-ready Confusion Matrix saved to: /home/theengineroom1/Documents/daimon_ws/C1_group/COGAR_Assignment_2026/Saved_Models/confusion_matrix_20260618_1801.pdf
-^CTraceback (most recent call last):
-  File "/home/theengineroom1/Documents/daimon_ws/C1_group/COGAR_Assignment_2026/neural_network.py", line 240, in <module>
-    plt.show()
-  File "/usr/lib/python3/dist-packages/matplotlib/pyplot.py", line 368, in show
-    return _backend_mod.show(*args, **kwargs)
-  File "/usr/lib/python3/dist-packages/matplotlib/backend_bases.py", line 3544, in show
-    cls.mainloop()
-  File "/usr/lib/python3/dist-packages/matplotlib/backends/_backend_tk.py", line 958, in mainloop
-    first_manager.window.mainloop()
-  File "/usr/lib/python3.10/tkinter/__init__.py", line 1458, in mainloop
-    self.tk.mainloop(n)
-KeyboardInterrupt
+[SUCCESS] Publication-ready Confusion Matrix saved to: /home/theengineroom1/Documents/daimon_ws/C1_group/COGAR_Assignment_2026/Saved_Models/confusion_matrix_20260618_1828.pdf
