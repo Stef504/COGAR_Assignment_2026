@@ -28,24 +28,17 @@ def open_interactive_graph():
     
     # Subplot 1: Indentation Profile (Left Axis) vs Scaled Shear (Right Twin Axis)
     # Using a twin axis prevents the massive integrated shear values from flattening your depth curve!
-    ax1.plot(time_arr, depth_arr, color='blue', linewidth=2, label="Depth (mm)")
+    ax1.plot(time_arr, depth_arr, color='blue', linewidth=2, label="Depth")
     ax1.set_ylabel("Depth (px*mm)", color='blue', fontsize=12)
-    ax1.set_title("Tactile Profile Relationships over Time", fontsize=14)
+    ax1.set_xlabel("Time (s)", fontsize=12)
+    ax1.set_title("Depth", fontsize=14)
     ax1.grid(True, linestyle='--', alpha=0.5)
-    
-    ax1_right = ax1.twinx()
-    ax1_right.plot(time_arr, np.array(shear_arr), color='red', linewidth=1.5, linestyle='--', label="Shear")
-    ax1_right.set_ylabel("Shear Displacement (px*mm)", color='red', fontsize=12)
-    
-    # Combine legends smoothly
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax1_right.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
     
     # === Subplot 2: Isolated Shear Force Profile ===
     ax2.plot(time_arr, np.array(shear_arr), color='red', linewidth=2)
     ax2.set_title("Shear", fontsize=14)
-    ax2.set_ylabel("Cumulative Shear Displacement (px*mm)", color='red', fontsize=12)
+    ax2.set_xlabel("Time (s)", fontsize=12)
+    ax2.set_ylabel("Shear Displacement (px*mm)", color='red', fontsize=12)
     ax2.grid(True, linestyle='--', alpha=0.5)
     
     #Velocity Profile (Dip Detection)
@@ -63,7 +56,7 @@ def open_interactive_graph():
     ax4.set_ylabel("Velocity (px*mm/s)", color='crimson', fontsize=11)
     ax4.grid(True, linestyle='--', alpha=0.5)
 
-    plt.suptitle(f"Interactive Analysis: {file_path.split('/')[-1]}", fontsize=14)
+    plt.suptitle(f"Tactile Profile Relationships over Time: {file_path.split('/')[-1]}", fontsize=14)
     plt.tight_layout()
     
     # This will pop open the window WITH the interactive zoom toolbar!
