@@ -101,9 +101,10 @@ ros2 run baxter_ik ik_baxter -l {right.left}
 ros2 run baxter_ik daimon_sensor
 ```
 
-# Neural Network and Classifier:
+# Neural Network:
 - Uses the time series transformer neural networking technique to learn from the variables (shear, depth, shear velocity, and depth velocity)
-- It assigns weights to the data and receives penalties (for its incorrect assumptions based, once compared with the actual tensor).
+- It assigns weights to the data and receives penalties (for its incorrect assumptions, once compared with the actual tensor).
+- The scale taken from the datasets was normalized as to account for the varying scale.
 - This is executed using the recorded data for each iterations  
 - A confusion matrix and classification report is produced. The confusion matrix maps the true labels against the predicted labels, this way we can anaylse which catergories are being confsued with other catergories, this would be a result of similar patterns
 - Classification report leads to the stastical anaylses . the statics are groups by precision, recall and F1-score. Precision: how well or poorly the model was we naming a material out of all the materials. High precision resulst in a low false-positive. Recall : Out of all the samples of a specific material present in the test , how succeful was the model per material. High recall indicates a low false-negative rate. F1-Score: 2* (Precision * Recall)/(precision+recall). balance metrix representing performance for that specific class. So how trustworthy is the systen and how thorough
@@ -114,7 +115,7 @@ ros2 run baxter_ik daimon_sensor
 - 
 
 # File Location:
-
+```bash
 |
 +-- baxter_ros2_ws
 |   +-- baxter_common_ros2/       
@@ -184,6 +185,6 @@ ros2 run baxter_ik daimon_sensor
 +-- setup.py            Used to install packges
 |
 +-- utilities.py        Helper Function
-
+```
 
 
