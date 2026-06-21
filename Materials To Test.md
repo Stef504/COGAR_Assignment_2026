@@ -18,6 +18,15 @@
 6.  Combination of metal and plastic - this is for a multilevel material classification. Since we start with the benchmarks, we should see maybe some similar comparisons. 
     a. Take the metallic parts and superglue a similar 3D-printed component so we can have a continuous geometry. 
 
-6. Could do a wooden piece with a 3D print attached to it so we have a combination of wood and ABS plastic and are adding to multilevel material classifications. 
+7. Could do a wooden piece with a 3D print attached to it so we have a combination of wood and ABS plastic and are adding to multilevel material classifications. 
     a. With respect to points 5 and 6, we can make it so one sensor touches the one material and the other material. 
     b. We can test again where both sensors test the combination of the materials, so i.e., wood and plastic integration is being touched by the sensor…
+
+
+## Materials Actually Tested on:
+
+1. The 3D-printed object found in the lab.
+2. A metallic cover found in the lab.
+3. A rubber ball found in the lab.
+
+(Images of these objects can be found in the research paper)

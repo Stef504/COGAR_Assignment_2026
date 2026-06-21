@@ -252,7 +252,58 @@ if __name__ == "__main__":
     print("\nFINAL DETAILED MATERIAL BREAKDOWN:")
     report = classification_report(all_true_labels, all_model_guesses, target_names=target_names, zero_division=0)
     print(report)
+
+    # 2. Extract math as a dictionary
+    report_dict = classification_report(all_true_labels, all_model_guesses, target_names=target_names, zero_division=0, output_dict=True)
+
+    # --- NEW: Generate Visual Table Graphic ---
+    print("\nGenerating final Classification Report table graphic...")
+    fig_tbl, ax_tbl = plt.subplots(figsize=(8, 4))
+    ax_tbl.axis('off')
+    ax_tbl.axis('tight')
     
+    row_labels = target_names + ["", "Accuracy", "Macro Avg", "Weighted Avg"]
+    col_labels = ["Precision", "Recall", "F1-Score", "Support"]
+    cell_text = []
+    
+    # Populate material rows
+    for name in target_names:
+        cell_text.append([f"{report_dict[name]['precision']:.2f}", 
+                          f"{report_dict[name]['recall']:.2f}", 
+                          f"{report_dict[name]['f1-score']:.2f}", 
+                          f"{int(report_dict[name]['support'])}"])
+        
+    cell_text.append(["", "", "", ""]) # Empty separator row
+    
+    # Populate Accuracy and Averages
+    total_support = int(report_dict['macro avg']['support'])
+    cell_text.append(["", "", f"{report_dict['accuracy']:.2f}", f"{total_support}"])
+    
+    for avg in ['macro avg', 'weighted avg']:
+        cell_text.append([f"{report_dict[avg]['precision']:.2f}", 
+                          f"{report_dict[avg]['recall']:.2f}", 
+                          f"{report_dict[avg]['f1-score']:.2f}", 
+                          f"{int(report_dict[avg]['support'])}"])
+        
+    # Draw table
+    table = ax_tbl.table(cellText=cell_text, rowLabels=row_labels, colLabels=col_labels, loc='center', cellLoc='center')
+    table.scale(1, 1.8) # Adjust row heights for readability
+    table.set_fontsize(11)
+    
+    # Style the headers (Bold font, light blue background)
+    for (row, col), cell in table.get_celld().items():
+        if row == 0 or col == -1:
+            cell.set_text_props(weight='bold')
+            cell.set_facecolor('#e6f2ff')
+            
+    plt.title("Tactile Transformer Classification Report", fontsize=14, fontweight='bold', pad=20)
+    
+    # Save as PDF
+    tbl_filename = os.path.join(model_dir, f"classification_report_{timestamp}.pdf")
+    plt.savefig(tbl_filename, format='pdf', dpi=300, bbox_inches='tight')
+    print(f"[SUCCESS] Publication-ready Report Table saved to: {tbl_filename}")
+    
+    # --- Existing Confusion Matrix Code ---
     print("\nGenerating final Confusion Matrix graphic...")
     
     cm = confusion_matrix(all_true_labels, all_model_guesses)
