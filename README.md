@@ -188,3 +188,32 @@ ros2 run baxter_ik daimon_sensor
 ```
 
 
+## Cognitive Approach:
+
+# Sensor Apparatus/Interface
+- The sensor gathered sensory data (depth, shear). 
+- The processed that data to yield shear velocity and depth velocity invoke the computational step. 
+- These raw data, measured in pixels per mm, were then converted into graphical representations enabling users to comprehend the material's "fingerprint" that the sensor was collecting. This gave an understanding of if the data gathered had any differentiation between materials.
+- The use of the sensor's raw image also provided diagnostic information to identify any wear-and-tear concerns. 
+
+
+# It additionally integrated "Publish and Subscribe":
+- The Daimon sensor script had to commence prior to the inverse kinematic scripts because the publisher does not care whether any node is "listening".
+- The sensor is the subscriber, and the published command starts/stops the local recordings.
+The command "START" initiated the recording of the local recordings, specifically capturing the 2-second swiping motion. 
+- "STOP" terminated the local recording. Together these commands allowed each swipe to be saved individually. This data was then fed into the neural network for training. 
+- "EXPERIMENT_COMPLETE" terminated the entire recording and produced the global data for the graph. 
+- This gave a synchronous and autonomous flow of data acquisition during the swiping motion. 
+
+
+# Hybrid reactive-deliberative architecture:
+- First is the analysis of the sense-plan-act architecture:
+- The data sourced from the VBTS (`sense`) informs the `reasoning` process. - The `sense` layer is based on how the raw data and calculated data from the sensor are compared to the trained neural network, and it provides the ontology with predicates such as the material classification.
+- The `plan/reasoning` then dictates the appropriate grasping force based on the material identification.
+- Finally, the execution (`act`) phase entails the actual grasping of the object and task completion.
+- This operates under closed-world assumptions, so linking to the bio-inspired architecture will render it a hybrid reactive-deliberative architecture.
+-`Bio-inspired` denotes the approach of data acquisition and its association with receptors in human skin for the purpose of material identification.
+- The deliberative layer consists of `conscious type 2 `reasoning, characterised by the `sense-plan-act` framework previously outlined.
+- The reactive layer represents `reflexive type 1 logic`, integrating low-level bio-inspired behaviour. Behaviour is categorised into perceptual and motor schemas. 
+- Bio-inspired behaviours are triggered by a `releaser`. The releaser is activated when the shear velocity graphs indicate a slippage.
+- The `perceptual` schema processes the loss of static friction , which leads to the `motor` schema engaging and bypassing the planner. This prompts a firmer grip on the material.
