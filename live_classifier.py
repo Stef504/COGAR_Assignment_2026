@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from dmrobotics import Sensor, put_arrows_on_image
-from baxter_ik.utilities import preprocess_experiment_run
+from utilities import preprocess_experiment_run
 
 # --- 1. IMPORT YOUR MODEL ARCHITECTURE ---
 # This MUST perfectly match the architecture used during training!
