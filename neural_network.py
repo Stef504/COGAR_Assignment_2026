@@ -37,7 +37,7 @@ class TactileTransformerClassifier(nn.Module):
         output = self.fc_out(x)
         return output
 
-# --- 2. THE CUSTOM DATASET LOADER (Reading & Processing On-The-Fly) ---
+# --- 2. THE CUSTOM DATASET LOADER (Reading & Processing) ---
 class DaimonDataset(Dataset):
     def __init__(self, root_dir):
         """
@@ -70,27 +70,13 @@ class DaimonDataset(Dataset):
         return len(self.file_paths)
 
     def __getitem__(self, idx):
-        # 1. Load the raw physics data from the hard drive (Shape: 500x3 -> Time, Depth, Shear)
+        # 1. Load the pre-processed physics data from the hard drive
+        # Since preprocess_experiment_run already calculated velocities, 
+        # the shape is exactly 500x4 -> [Depth, Shear, Depth_Velocity, Shear_Velocity]
         file_path = self.file_paths[idx]
-        raw_matrix = np.load(file_path) 
+        features_matrix = np.load(file_path) 
         
-        time_arr = raw_matrix[:, 0]
-        depth_arr = raw_matrix[:, 1]
-        shear_arr = raw_matrix[:, 2]
-        
-        # 2. FEATURE ENGINEERING: Calculate Velocities on the fly!
-        dt = np.diff(time_arr)
-        dt = np.clip(dt, 1e-4, None) # Prevent division by zero if timestamps are identical
-        
-        # Calculate velocity and pad the first element so it stays exactly 500 steps long
-        depth_vel = np.pad(np.diff(depth_arr) / dt, (1, 0), mode='edge')
-        shear_vel = np.pad(np.diff(shear_arr) / dt, (1, 0), mode='edge')
-        
-        # 3. Build the new 4-Feature Matrix
-        # We drop 'Time' because the Transformer's positional embedding already handles sequence order
-        features_matrix = np.column_stack((depth_arr, shear_arr, depth_vel, shear_vel))
-        
-        # 4. NORMALIZATION (Z-Score Standardization)
+        # 2. NORMALIZATION (Z-Score Standardization)
         # This fixes the "Exploding Gradient" (NaN) error by shrinking the massive numbers!
         for i in range(features_matrix.shape[1]):
             col_mean = np.mean(features_matrix[:, i])
@@ -106,6 +92,7 @@ class DaimonDataset(Dataset):
         tensor_y = torch.tensor(label, dtype=torch.long)          
         
         return tensor_x, tensor_y
+
 
 # --- 3. TRAINING LOOP & MEMORY SAVING ---
 if __name__ == "__main__":
@@ -256,7 +243,7 @@ if __name__ == "__main__":
     # 2. Extract math as a dictionary
     report_dict = classification_report(all_true_labels, all_model_guesses, target_names=target_names, zero_division=0, output_dict=True)
 
-    # --- NEW: Generate Visual Table Graphic ---
+    # --- Generate Visual Table Graphic ---
     print("\nGenerating final Classification Report table graphic...")
     fig_tbl, ax_tbl = plt.subplots(figsize=(8, 4))
     ax_tbl.axis('off')

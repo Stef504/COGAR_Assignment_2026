@@ -63,20 +63,8 @@ class LiveTactileClassifier:
         print("\n[PROCESSING] Analyzing tactile physics...")
         
         # 1. Preprocess: Standardize length to 500 steps
-        fixed_sequence = preprocess_experiment_run(self.time_hist, self.depth_hist, self.shear_hist)
-        
-        time_arr = fixed_sequence[:, 0]
-        depth_arr = fixed_sequence[:, 1]
-        shear_arr = fixed_sequence[:, 2]
-        
-        # 2. Velocity Math (Mirroring the Training Script)
-        dt = np.diff(time_arr)
-        dt = np.clip(dt, 1e-4, None) 
-        depth_vel = np.pad(np.diff(depth_arr) / dt, (1, 0), mode='edge')
-        shear_vel = np.pad(np.diff(shear_arr) / dt, (1, 0), mode='edge')
-        
-        features_matrix = np.column_stack((depth_arr, shear_arr, depth_vel, shear_vel))
-        
+        features_matrix = preprocess_experiment_run(self.time_hist, self.depth_hist, self.shear_hist)
+
         # 3. Z-Score Normalization (Mirroring the Training Script)
         for i in range(features_matrix.shape[1]):
             col_mean = np.mean(features_matrix[:, i])
@@ -111,6 +99,8 @@ class LiveTactileClassifier:
             img_raw = self.sensor.getRawImage()
             depth_map = self.sensor.getDepth()
             shear_map = self.sensor.getShear()
+            
+            # --- Brought back the black background for the arrows ---
             black_img = np.zeros((240, 320, 3), dtype=np.uint8)
             
             # Real-time Symmetrical Physics Calculation
@@ -123,22 +113,30 @@ class LiveTactileClassifier:
             cumulative_shear = np.sqrt(np.sum(masked_shear[:, :, 0])**2 + np.sum(masked_shear[:, :, 1])**2)
             cumulative_depth = np.sum(masked_depth)
             
+            # Convert the 0/1 mask into a visible Black & White image
+            contact_display = (contact_mask * 255).astype(np.uint8)
+            
             if self.is_recording:
                 curr_time = time.time() - self.start_time
                 self.time_hist.append(curr_time)
                 self.depth_hist.append(cumulative_depth)
                 self.shear_hist.append(cumulative_shear)
                 
-                # Visual indicator that it is recording
+                # Visual indicator drawn on both diagnostic windows
+                cv2.putText(contact_display, "RECORDING SWIPE...", (10, 30), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, 150, 2)
                 cv2.putText(black_img, "RECORDING SWIPE...", (10, 30), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-            # Display
+            # --- Generate the arrow visual using the masked shear data ---
             vector_vis = put_arrows_on_image(black_img, masked_shear * 20)
+
+            # Display all 3 perspectives
             gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY) if len(img_raw.shape) == 3 else img_raw
             
             cv2.imshow('1. Raw Sensor', gray)
-            cv2.imshow('2. Shear Physics', vector_vis)
+            cv2.imshow('2. Contact Area Logic', contact_display)
+            cv2.imshow('3. Tangential Shear Vectors', vector_vis)
             
             # Keyboard Controls
             key = cv2.waitKey(3) & 0xFF
