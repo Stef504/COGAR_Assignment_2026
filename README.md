@@ -121,7 +121,9 @@ ros2 run baxter_ik daimon_sensor
 - Computes the comparative analysis to determine which material is currently being tested. This knowledge is based off the trained data.
 
 ### Utilities:
-- Compresses the data to except only 500 rows of data. This ensures standardization when anaylsing the data
+- Calculates the shear and depth velocities
+- Compresses the data to except only 500 rows of data. This ensures standardization when anaylsing the data.
+- Creates a multivariate time-series matrix which is used by the neural network
 
 
 # File Location:
@@ -200,7 +202,7 @@ ros2 run baxter_ik daimon_sensor
 
 # Cognitive Approach:
 
-## Sensor Apparatus/Interface
+## Sensor Device/Interface
 - The sensor gathered sensory data (depth, shear). 
 - The processed that data to yield shear velocity and depth velocity invoke the computational step. 
 - These raw data, measured in pixels per mm, were then converted into graphical representations enabling users to comprehend the material's "fingerprint" that the sensor was collecting. This gave an understanding of if the data gathered had any differentiation between materials.

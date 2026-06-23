@@ -66,7 +66,7 @@ class LiveTactileClassifier:
             print("\n" + "="*50)
             print(" [WARNING] NO CONTACT DETECTED")
             print(" The sensor did not touch anything firmly enough during the recording.")
-            print(" Prediction aborted to prevent false \"Plastic\" guesses.")
+            print(" Prediction aborted to prevent false guesses.")
             print("="*50 + "\n")
             return
         
@@ -109,8 +109,6 @@ class LiveTactileClassifier:
             img_raw = self.sensor.getRawImage()
             depth_map = self.sensor.getDepth()
             shear_map = self.sensor.getShear()
-            
-            # --- Brought back the black background for the arrows ---
             black_img = np.zeros((240, 320, 3), dtype=np.uint8)
             
             # Real-time Symmetrical Physics Calculation
@@ -123,8 +121,9 @@ class LiveTactileClassifier:
             cumulative_shear = np.sqrt(np.sum(masked_shear[:, :, 0])**2 + np.sum(masked_shear[:, :, 1])**2)
             cumulative_depth = np.sum(masked_depth)
             
-            # Convert the 0/1 mask into a visible Black & White image
-            contact_display = (contact_mask * 255).astype(np.uint8)
+            if self.contact_start_depth == 0.0 and cumulative_depth > 0.5:
+                self.contact_start_depth = cumulative_depth
+                print(f"Contact triggered at {time.time() - self.experiment_start_time:.2f}s")
             
             if self.is_recording:
                 curr_time = time.time() - self.start_time
@@ -133,10 +132,8 @@ class LiveTactileClassifier:
                 self.shear_hist.append(cumulative_shear)
                 
                 # Visual indicator drawn on both diagnostic windows
-                cv2.putText(contact_display, "RECORDING SWIPE...", (10, 30), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, 150, 2)
                 cv2.putText(black_img, "RECORDING SWIPE...", (10, 30), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, 150, 2)
 
             # --- Generate the arrow visual using the masked shear data ---
             vector_vis = put_arrows_on_image(black_img, masked_shear * 20)
@@ -145,7 +142,7 @@ class LiveTactileClassifier:
             gray = cv2.cvtColor(img_raw, cv2.COLOR_BGR2GRAY) if len(img_raw.shape) == 3 else img_raw
             
             cv2.imshow('1. Raw Sensor', gray)
-            cv2.imshow('2. Contact Area Logic', contact_display)
+            cv2.imshow('2. Depth Heatmap', cv2.applyColorMap((depth_smooth*100).astype('uint8'), cv2.COLORMAP_HOT))        
             cv2.imshow('3. Tangential Shear Vectors', vector_vis)
             
             # Keyboard Controls
