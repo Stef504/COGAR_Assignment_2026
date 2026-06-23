@@ -60,6 +60,16 @@ class LiveTactileClassifier:
             print("Not enough data recorded! Try swiping longer.")
             return
             
+        # If the maximum recorded depth is 0, the sensor was hovering in the air 
+        # (or the human didn't press hard enough to cross the DEPTH_THRESHOLD).
+        if max(self.depth_hist) <= 0.0:
+            print("\n" + "="*50)
+            print(" [WARNING] NO CONTACT DETECTED")
+            print(" The sensor did not touch anything firmly enough during the recording.")
+            print(" Prediction aborted to prevent false \"Plastic\" guesses.")
+            print("="*50 + "\n")
+            return
+        
         print("\n[PROCESSING] Analyzing tactile physics...")
         
         # 1. Preprocess: Standardize length to 500 steps
