@@ -155,7 +155,7 @@ class LiveTactileClassifier:
 
 if __name__ == "__main__":
     # --- UPDATE THIS PATH TO YOUR EXACT 90.5% ACCURACY MODEL ---
-    WEIGHTS_FILE = "Saved_Models/daimon_transformer_20260621_1534.pth" 
+    WEIGHTS_FILE = "Saved_Models/daimon_transformer_20260623_1459.pth" 
     
     if not os.path.exists(WEIGHTS_FILE):
         print(f"[ERROR] Cannot find model at: {WEIGHTS_FILE}")
