@@ -11,6 +11,11 @@ Software needed: ROS2, Python data analysis (pandas, numpy, matplotlib)
 Research needed: Tactile sensing papers, material property analysis
 Deliverables: Multi-modal tactile dataset, sensor characterization report
 
+Due to limited time and available data in the understanding of the capabilities of the Daimon sensor, only two modalities were used. A new project layout is formed with the following changes:
+1) Design experiments to collect depth and shear data.
+2) Test sensor on 3 materials/objects
+
+
 # Interface for Daimon tactile sensor (DM-Tac WS) Vision-based Tactile Sensor using the `original_main.py` script
 
 # How to use
@@ -117,16 +122,16 @@ ros2 run baxter_ik daimon_sensor
 ## Live Classification:
 - Builds the same architecture that was used in the neural network
 - Imports the .pth file from the workspace to attain the knowledge from the neural network
-- Lets the user start and stop the recording motion. Once stopped, the data collected from the sensor is transferred into matrices. The data is then normalized so as to adjust the scale of the input data.
+- Lets the user start and stop the recording motion. Once stopped, the data collected from the sensor is transferred into matrices. The data are then normalised to adjust the scale of the input data.
 - Computes the comparative analysis to determine which material is currently being tested. This knowledge is based off the trained data.
 
 ### Utilities:
 - Calculates the shear and depth velocities
-- Compresses the data to except only 500 rows of data. This ensures standardization when anaylsing the data.
+- Compresses the data to accept only 500 rows of data. This ensures standardisation when analysing the data.
 - Creates a multivariate time-series matrix which is used by the neural network
 
 
-# File Location:
+# File Description:
 ```bash
 |
 +-- baxter_ros2_ws
