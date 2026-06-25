@@ -138,9 +138,11 @@ Please ensure you have cloned the customized fork into your workspace:
 
 * **Baxter ROSBridge Adapter (Custom Fork):** [https://github.com/Stef504/baxter_rosbridge_adapter.git](https://github.com/Stef504/baxter_rosbridge_adapter.git)
 * **Original Upstream Repository:** [https://github.com/maylinnkaa/baxter_rosbridge_adapter.git](https://github.com/maylinnkaa/baxter_rosbridge_adapter.git)
+
+Please read the `BUILD_HUMBLE.md` to build the respective packages in the ROS workspace (`baxter_ros2_ws`).
 ```bash
     |
-    +-- baxter_rosbridge_adapter
+    +-- baxter_ros2_ws
     |   +-- baxter_common_ros2/       
     |
     |   +-- baxter_dataflow/      
@@ -150,6 +152,8 @@ Please ensure you have cloned the customized fork into your workspace:
     |        +--position_kinematics.py      forward kinematics
     |        +--daimon_sensor.py            daimon sensor script     
     |        +--utilities.py                assiting function
+    |        +--live_classifier.py          live classification test
+    |        +--neural_network.py           neural network trainer
     |        
     |    +-- baxter_interface/
     |    
@@ -195,13 +199,16 @@ Please ensure you have cloned the customized fork into your workspace:
 |
 +-- Saved_Models        The saved trained models (.pth), confusion matrix, classification report
 |
++-- Prenesation
+|    +--C1_StefaniaGermena.pptx   Presentation
+|
 +-- DM-Tac W- English.pdf
 |
 +-- DM-Tac.pdf
 |
 +--graphs.py           Display graphs
 |
-+--live_classifier.py
++--live_classifier.py  Live classification Test
 |
 +--main.py             Hand testing- prior to any ros2 development
 |
@@ -209,7 +216,7 @@ Please ensure you have cloned the customized fork into your workspace:
 |
 +--original_main.py    Original Daimon Sensor script, without any modifications
 |
-+--Report and Presentation.md
++--C1_StefaniaGermena.pdf   Report
 |
 +--requirements.txt    Packages required
 |
