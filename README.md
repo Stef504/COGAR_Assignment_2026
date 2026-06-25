@@ -132,26 +132,40 @@ ros2 run baxter_ik daimon_sensor
 
 
 # File Description:
+
+This project requires the Baxter ROS2 bridge adapter to function properly. 
+Please ensure you have cloned the customized fork into your workspace:
+
+* **Baxter ROSBridge Adapter (Custom Fork):** [https://github.com/Stef504/baxter_rosbridge_adapter.git](https://github.com/Stef504/baxter_rosbridge_adapter.git)
+* **Original Upstream Repository:** [https://github.com/maylinnkaa/baxter_rosbridge_adapter.git](https://github.com/maylinnkaa/baxter_rosbridge_adapter.git)
 ```bash
-|
-+-- baxter_ros2_ws
-|   +-- baxter_common_ros2/       
-|
-|   +-- baxter_dataflow/      
-|
-|   +-- baxter_ik/
+    |
+    +-- baxter_rosbridge_adapter
+    |   +-- baxter_common_ros2/       
+    |
+    |   +-- baxter_dataflow/      
+    |
+    |   +-- baxter_ik/
+    |        +--ik_baxter.py                inverse kinematics
+    |        +--position_kinematics.py      forward kinematics
+    |        +--daimon_sensor.py            daimon sensor script     
+    |        +--utilities.py                assiting function
+    |        
+    |    +-- baxter_interface/
+    |    
+    |    +-- baxter_rosbridge_adapter/
+    |        +--baxter_cli.py
+    |        +--calibrate_arm.py
+    |        +--baxter_grippers_cli.py
+    |        +--joint_state_bridge.py
+
+
++-- baxter_ik/
 |        +--ik_baxter.py                inverse kinematics
 |        +--position_kinematics.py      forward kinematics
-|        +--daimon_sensor.py           daimon sensor        
+|        +--daimon_sensor.py            daimon sensor script       
 |        +--utilities.py                assiting function
-|        
-|    +-- baxter_interface/
-|    
-|    +-- baxter_rosbridge_adapter/
-|        +--baxter_cli.py
-|        +--calibrate_arm.py
-|        +--baxter_grippers_cli.py
-|        +--joint_state_bridge.py
+|
 |
 +-- Dataset
 |   +-- Metal

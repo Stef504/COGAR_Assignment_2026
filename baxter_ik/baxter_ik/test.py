@@ -5,7 +5,13 @@ import sys
 def main():
     # Connect to Baxter
     client = roslibpy.Ros(host='130.251.13.31', port=9090)
-    client.run()
+    try:
+        client.run()
+    except Exception as exc:
+        print(f"Error: cannot reach Baxter at ws://130.251.13.31:9090: {exc}\n"
+              "Check that the robot is on, rosbridge_server is running, and the host/port are correct.",
+              file=sys.stderr)
+        sys.exit(1)
     
     if not client.is_connected:
         print("CRITICAL: Cannot connect to Baxter's WebSocket server.")
