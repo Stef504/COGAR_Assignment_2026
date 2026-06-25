@@ -53,6 +53,8 @@ class LiveTactileClassifier:
         # Memory variables
         self.is_recording = False
         self.start_time = 0.0
+        self.contact_start_depth=0.0
+        self.experiment_start_time= time.time()
         self.time_hist, self.shear_hist, self.depth_hist = [], [], []
 
     def execute_live_inference(self):
