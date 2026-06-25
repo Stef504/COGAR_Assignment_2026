@@ -26,6 +26,7 @@ class DaimonROSLogger:
         print(" DAIMON SENSOR DATA COLLECTION INITIALIZED")
         print("="*40)
         self.material_name = input("Enter Material Name (e.g., Plastic, Wood, Glass, Metal): ").strip()
+        self.test = input("Enter which test this is (e.g Test1, TestPlasticV2): ").strip()
         self.orientation = input("Enter Orientation (e.g., Up, Down,Diagonal_Right,Diagonal_Left,Left,Right): ").strip()
         print(f"\n[TARGET DIRECTORY] -> Dataset/{self.material_name}/{self.orientation}/")
         print("="*40 + "\n")
@@ -39,15 +40,10 @@ class DaimonROSLogger:
         
         # ROS Setup
         self.client = roslibpy.Ros(host=host, port=port)
-        try:
-            self.client.run()
-        except Exception as exc:
-            print(f"CRITICAL: Daimon node could not connect to Baxter at ws://{host}:{port}: {exc}\n"
-                  "Check that the robot is on, rosbridge_server is running, and the host/port are correct.")
-            raise SystemExit(1)
+        self.client.run()
         if not self.client.is_connected:
-            print("CRITICAL: Daimon node could not connect to Baxter rosbridge.")
-            raise SystemExit(1)
+            print("CRITICAL: Daimon node could not connect to ROS master.")
+            exit()
             
         print("Daimon node connected! Listening for Baxter commands...")
         
@@ -109,7 +105,7 @@ class DaimonROSLogger:
         SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
         
         # 2. Goes up ONE level to: .../baxter_ros2_ws/src/baxter_ik
-        PACKAGE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "./../../../../../"))
+        PACKAGE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../../../../../../"))
         
         # 3. Safely build the Dataset path
         folder_path = os.path.join(PACKAGE_ROOT, "Dataset", self.material_name, self.orientation)
@@ -118,7 +114,7 @@ class DaimonROSLogger:
             os.makedirs(folder_path)
             
         fixed_sequence = preprocess_experiment_run(self.local_time, self.local_depth, self.local_shear)
-        filename = os.path.join(folder_path, f"{self.material_name}_{self.orientation}_rep{self.current_rep}_{self.current_direction}.npy")
+        filename = os.path.join(folder_path, f"{self.material_name}_{self.test}_{self.orientation}_rep{self.current_rep}_{self.current_direction}.npy")
         
         np.save(filename, fixed_sequence)
         print(f"  [SAVED NN MATRIX] -> {filename}")
@@ -159,18 +155,21 @@ class DaimonROSLogger:
             contact_area_mm2 = np.sum(contact_mask) * PIXEL_AREA
             
             masked_shear = shear_map * contact_mask[:, :, np.newaxis]
+            masked_depth = depth_smooth * contact_mask
             total_shear_force = np.sqrt(np.sum(masked_shear[:, :, 0])**2 + np.sum(masked_shear[:, :, 1])**2)
-            
+            cumulative_depth = np.sum(masked_depth)
+
             # Record Global Initial Contact Depth
-            max_depth = np.max(depth_map)
-            if self.contact_start_depth == 0.0 and max_depth > DEPTH_THRESHOLD:
-                self.contact_start_depth = max_depth
+            # Replaces the max_depth logic with the cumulative sum threshold
+            if self.contact_start_depth == 0.0 and cumulative_depth > 0.5:
+                self.contact_start_depth = cumulative_depth
+                print(f"Contact triggered at {time.time() - self.experiment_start_time:.2f}s")
 
             # --- ALWAYS RECORD TO GLOBAL MEMORY ---
             # This captures the data continuously so the pauses show up as flatlines on the graph
             global_curr_time = time.time() - self.experiment_start_time
             self.global_time.append(global_curr_time)
-            self.global_depth.append(max_depth)
+            self.global_depth.append(cumulative_depth)
             self.global_shear.append(total_shear_force)
             self.global_area.append(contact_area_mm2)
 
@@ -178,7 +177,7 @@ class DaimonROSLogger:
             if self.is_recording:
                 local_curr_time = time.time() - self.rep_start_time
                 self.local_time.append(local_curr_time)
-                self.local_depth.append(max_depth)
+                self.local_depth.append(cumulative_depth)
                 self.local_shear.append(total_shear_force)
                 cv2.putText(black_img, f"REC: REP {self.current_rep} {self.current_direction.upper()}", 
                             (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
