@@ -32,7 +32,7 @@ class DaimonROSLogger:
         print("="*40 + "\n")
 
         # Hardware Setup
-        dev_serial_id = "S2508080069" # N160MU2 Camera
+        dev_serial_id = "S2508080077" 
         self.sensor = Sensor(dev_serial_id)
         print("Taring sensor baseline...")
         self.sensor.reset()
